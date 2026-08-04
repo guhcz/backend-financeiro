@@ -1,0 +1,129 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0003-create-expenses-table
+      author: backend-financeiro
+      changes:
+        - createTable:
+            tableName: expenses
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_expenses
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expense_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: payment_method
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: notes
+                  type: VARCHAR(500)
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: VARCHAR(180)
+              - column:
+                  name: updated_by
+                  type: VARCHAR(180)
+
+  - changeSet:
+      id: 0003-create-expenses-table-fk-user
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: expenses
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_expenses_user
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0003-create-expenses-table-fk-category
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: expenses
+            baseColumnNames: category_id
+            referencedTableName: categories
+            referencedColumnNames: id
+            constraintName: fk_expenses_category
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0003-create-expenses-table-check-amount
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE expenses ADD CONSTRAINT ck_expenses_amount_positive CHECK (amount > 0);
+      rollback:
+        - sql:
+            sql: ALTER TABLE expenses DROP CONSTRAINT ck_expenses_amount_positive;
+
+  - changeSet:
+      id: 0003-create-expenses-table-index-user-date
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: expenses
+            indexName: idx_expenses_user_date
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: expense_date
+
+  - changeSet:
+      id: 0003-create-expenses-table-index-category
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: expenses
+            indexName: idx_expenses_category
+            columns:
+              - column:
+                  name: category_id

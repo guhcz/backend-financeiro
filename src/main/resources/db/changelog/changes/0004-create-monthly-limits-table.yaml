@@ -1,0 +1,109 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0004-create-monthly-limits-table
+      author: backend-financeiro
+      changes:
+        - createTable:
+            tableName: monthly_limits
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_monthly_limits
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: month
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: year
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: VARCHAR(180)
+              - column:
+                  name: updated_by
+                  type: VARCHAR(180)
+
+  - changeSet:
+      id: 0004-create-monthly-limits-table-fk-user
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: monthly_limits
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_monthly_limits_user
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0004-create-monthly-limits-table-unique-user-period
+      author: backend-financeiro
+      changes:
+        - addUniqueConstraint:
+            tableName: monthly_limits
+            columnNames: user_id, year, month
+            constraintName: uk_monthly_limits_user_year_month
+
+  - changeSet:
+      id: 0004-create-monthly-limits-table-check-month
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE monthly_limits ADD CONSTRAINT ck_monthly_limits_month_range CHECK (month BETWEEN 1 AND 12);
+      rollback:
+        - sql:
+            sql: ALTER TABLE monthly_limits DROP CONSTRAINT ck_monthly_limits_month_range;
+
+  - changeSet:
+      id: 0004-create-monthly-limits-table-check-year
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE monthly_limits ADD CONSTRAINT ck_monthly_limits_year_range CHECK (year >= 2000);
+      rollback:
+        - sql:
+            sql: ALTER TABLE monthly_limits DROP CONSTRAINT ck_monthly_limits_year_range;
+
+  - changeSet:
+      id: 0004-create-monthly-limits-table-check-amount
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE monthly_limits ADD CONSTRAINT ck_monthly_limits_amount_positive CHECK (amount > 0);
+      rollback:
+        - sql:
+            sql: ALTER TABLE monthly_limits DROP CONSTRAINT ck_monthly_limits_amount_positive;

@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - include:
+      file: changes/0001-create-users-table.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0002-create-categories-table.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0003-create-expenses-table.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0004-create-monthly-limits-table.yaml
+      relativeToChangelogFile: true
+
