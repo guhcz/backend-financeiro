@@ -13,14 +13,24 @@ public interface ExpenseMapper {
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "user", ignore = true)
 	@Mapping(target = "category", ignore = true)
+	@Mapping(target = "recurringExpense", ignore = true)
+	@Mapping(target = "generatedAutomatically", ignore = true)
+	@Mapping(target = "recurrenceReferenceYear", ignore = true)
+	@Mapping(target = "recurrenceReferenceMonth", ignore = true)
 	Expense toEntity(ExpenseRequest request);
 
+	@Mapping(target = "recurringExpenseId", expression = "java(expense.getRecurringExpense() != null ? expense.getRecurringExpense().getId() : null)")
+	@Mapping(target = "recurring", expression = "java(expense.getRecurringExpense() != null)")
 	ExpenseResponse toResponse(Expense expense);
 
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "user", ignore = true)
 	@Mapping(target = "category", ignore = true)
 	@Mapping(target = "active", ignore = true)
+	@Mapping(target = "recurringExpense", ignore = true)
+	@Mapping(target = "generatedAutomatically", ignore = true)
+	@Mapping(target = "recurrenceReferenceYear", ignore = true)
+	@Mapping(target = "recurrenceReferenceMonth", ignore = true)
 	void updateEntityFromRequest(ExpenseRequest request, @MappingTarget Expense expense);
 
 }

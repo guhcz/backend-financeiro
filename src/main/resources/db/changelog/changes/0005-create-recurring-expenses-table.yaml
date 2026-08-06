@@ -1,0 +1,177 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0005-create-recurring-expenses-table
+      author: backend-financeiro
+      changes:
+        - createTable:
+            tableName: recurring_expenses
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_recurring_expenses
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: payment_method
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: notes
+                  type: VARCHAR(500)
+              - column:
+                  name: frequency
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: due_day
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: start_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: end_date
+                  type: DATE
+              - column:
+                  name: next_generation_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: ACTIVE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: VARCHAR(180)
+              - column:
+                  name: updated_by
+                  type: VARCHAR(180)
+
+  - changeSet:
+      id: 0005-create-recurring-expenses-table-fk-user
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: recurring_expenses
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_recurring_expenses_user
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0005-create-recurring-expenses-table-fk-category
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: recurring_expenses
+            baseColumnNames: category_id
+            referencedTableName: categories
+            referencedColumnNames: id
+            constraintName: fk_recurring_expenses_category
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0005-create-recurring-expenses-table-check-amount
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE recurring_expenses ADD CONSTRAINT ck_recurring_expenses_amount_positive CHECK (amount > 0);
+      rollback:
+        - sql:
+            sql: ALTER TABLE recurring_expenses DROP CONSTRAINT ck_recurring_expenses_amount_positive;
+
+  - changeSet:
+      id: 0005-create-recurring-expenses-table-check-due-day
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE recurring_expenses ADD CONSTRAINT ck_recurring_expenses_due_day_range CHECK (due_day BETWEEN 1 AND 31);
+      rollback:
+        - sql:
+            sql: ALTER TABLE recurring_expenses DROP CONSTRAINT ck_recurring_expenses_due_day_range;
+
+  - changeSet:
+      id: 0005-create-recurring-expenses-table-check-end-date
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE recurring_expenses ADD CONSTRAINT ck_recurring_expenses_end_date_range CHECK (end_date IS NULL OR end_date >= start_date);
+      rollback:
+        - sql:
+            sql: ALTER TABLE recurring_expenses DROP CONSTRAINT ck_recurring_expenses_end_date_range;
+
+  - changeSet:
+      id: 0005-create-recurring-expenses-table-check-status
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE recurring_expenses ADD CONSTRAINT ck_recurring_expenses_status_valid CHECK (status IN ('ACTIVE','PAUSED','ENDED'));
+      rollback:
+        - sql:
+            sql: ALTER TABLE recurring_expenses DROP CONSTRAINT ck_recurring_expenses_status_valid;
+
+  - changeSet:
+      id: 0005-create-recurring-expenses-table-index-user
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: recurring_expenses
+            indexName: idx_recurring_expenses_user
+            columns:
+              - column:
+                  name: user_id
+
+  - changeSet:
+      id: 0005-create-recurring-expenses-table-index-status-next-generation
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: recurring_expenses
+            indexName: idx_recurring_expenses_status_next_generation
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: next_generation_date

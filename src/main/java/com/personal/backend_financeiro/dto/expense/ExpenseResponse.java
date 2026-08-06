@@ -15,7 +15,10 @@ public record ExpenseResponse(
 		LocalDate expenseDate,
 		PaymentMethod paymentMethod,
 		String notes,
-		boolean active
+		boolean active,
+		boolean generatedAutomatically,
+		boolean recurring,
+		Long recurringExpenseId
 
 ) {
 }

@@ -12,4 +12,9 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
 
 	boolean existsByCategoryId(Long categoryId);
 
+	boolean existsByRecurringExpenseIdAndRecurrenceReferenceYearAndRecurrenceReferenceMonth(
+			Long recurringExpenseId, Integer year, Integer month);
+
+	boolean existsByRecurringExpenseId(Long recurringExpenseId);
+
 }

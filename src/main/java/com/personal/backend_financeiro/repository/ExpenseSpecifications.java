@@ -57,4 +57,13 @@ public final class ExpenseSpecifications {
 		return (root, query, cb) -> cb.like(cb.lower(root.get("description")), "%" + text.toLowerCase() + "%");
 	}
 
+	public static Specification<Expense> isRecurring(Boolean recurring) {
+		if (recurring == null) {
+			return Specification.unrestricted();
+		}
+		return recurring
+				? (root, query, cb) -> cb.isNotNull(root.get("recurringExpense"))
+				: (root, query, cb) -> cb.isNull(root.get("recurringExpense"));
+	}
+
 }

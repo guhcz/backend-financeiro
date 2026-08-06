@@ -13,7 +13,8 @@ public record ExpenseFilterRequest(
 		PaymentMethod paymentMethod,
 		LocalDate startDate,
 		LocalDate endDate,
-		String description
+		String description,
+		Boolean recurring
 
 ) {
 }

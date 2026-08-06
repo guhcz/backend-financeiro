@@ -5,6 +5,9 @@ import com.personal.backend_financeiro.dto.expense.ExpenseRequest;
 import com.personal.backend_financeiro.dto.expense.ExpenseResponse;
 import com.personal.backend_financeiro.entity.Category;
 import com.personal.backend_financeiro.entity.Expense;
+import com.personal.backend_financeiro.entity.RecurringExpense;
+import com.personal.backend_financeiro.enums.RecurrenceStatus;
+import com.personal.backend_financeiro.enums.RecurringUpdateScope;
 import com.personal.backend_financeiro.exception.ResourceNotFoundException;
 import com.personal.backend_financeiro.mapper.ExpenseMapper;
 import com.personal.backend_financeiro.repository.CategoryRepository;
@@ -52,25 +55,40 @@ public class ExpenseService {
 				.and(ExpenseSpecifications.hasPaymentMethod(filter.paymentMethod()))
 				.and(ExpenseSpecifications.expenseDateFrom(filter.startDate()))
 				.and(ExpenseSpecifications.expenseDateTo(filter.endDate()))
-				.and(ExpenseSpecifications.descriptionContains(filter.description()));
+				.and(ExpenseSpecifications.descriptionContains(filter.description()))
+				.and(ExpenseSpecifications.isRecurring(filter.recurring()));
 
 		return expenseRepository.findAll(spec, pageable).map(expenseMapper::toResponse);
 	}
 
 	@Transactional
-	public ExpenseResponse update(Long userId, Long expenseId, ExpenseRequest request) {
+	public ExpenseResponse update(Long userId, Long expenseId, ExpenseRequest request, RecurringUpdateScope scope) {
 		Expense expense = findOwnedExpense(userId, expenseId);
 		Category category = findOwnedCategory(userId, request.categoryId());
 
 		expenseMapper.updateEntityFromRequest(request, expense);
 		expense.setCategory(category);
 
+		if (scope == RecurringUpdateScope.THIS_AND_FUTURE && expense.getRecurringExpense() != null) {
+			RecurringExpense rule = expense.getRecurringExpense();
+			rule.setCategory(category);
+			rule.setDescription(request.description());
+			rule.setAmount(request.amount());
+			rule.setPaymentMethod(request.paymentMethod());
+			rule.setNotes(request.notes());
+		}
+
 		return expenseMapper.toResponse(expense);
 	}
 
 	@Transactional
-	public void delete(Long userId, Long expenseId) {
+	public void delete(Long userId, Long expenseId, RecurringUpdateScope scope) {
 		Expense expense = findOwnedExpense(userId, expenseId);
+
+		if (scope == RecurringUpdateScope.THIS_AND_FUTURE && expense.getRecurringExpense() != null) {
+			expense.getRecurringExpense().setStatus(RecurrenceStatus.ENDED);
+		}
+
 		expenseRepository.delete(expense);
 	}
 

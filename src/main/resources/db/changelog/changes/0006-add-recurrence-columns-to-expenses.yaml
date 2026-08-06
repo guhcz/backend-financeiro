@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0006-add-recurrence-columns-to-expenses
+      author: backend-financeiro
+      changes:
+        - addColumn:
+            tableName: expenses
+            columns:
+              - column:
+                  name: recurring_expense_id
+                  type: BIGINT
+              - column:
+                  name: generated_automatically
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: recurrence_reference_year
+                  type: INTEGER
+              - column:
+                  name: recurrence_reference_month
+                  type: INTEGER
+
+  - changeSet:
+      id: 0006-add-recurrence-columns-to-expenses-fk-recurring-expense
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: expenses
+            baseColumnNames: recurring_expense_id
+            referencedTableName: recurring_expenses
+            referencedColumnNames: id
+            constraintName: fk_expenses_recurring_expense
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0006-add-recurrence-columns-to-expenses-unique-recurring-ref
+      author: backend-financeiro
+      changes:
+        - addUniqueConstraint:
+            tableName: expenses
+            columnNames: recurring_expense_id, recurrence_reference_year, recurrence_reference_month
+            constraintName: uk_expenses_recurring_ref
+
+  - changeSet:
+      id: 0006-add-recurrence-columns-to-expenses-check-reference-month
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE expenses ADD CONSTRAINT ck_expenses_recurrence_reference_month_range CHECK (recurrence_reference_month IS NULL OR recurrence_reference_month BETWEEN 1 AND 12);
+      rollback:
+        - sql:
+            sql: ALTER TABLE expenses DROP CONSTRAINT ck_expenses_recurrence_reference_month_range;
+
+  - changeSet:
+      id: 0006-add-recurrence-columns-to-expenses-index-recurring-expense
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: expenses
+            indexName: idx_expenses_recurring_expense
+            columns:
+              - column:
+                  name: recurring_expense_id
