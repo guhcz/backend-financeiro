@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0007-make-recurring-expenses-due-day-optional-drop-not-null
+      author: backend-financeiro
+      changes:
+        - dropNotNullConstraint:
+            tableName: recurring_expenses
+            columnName: due_day
+            columnDataType: INTEGER
+
+  - changeSet:
+      id: 0007-make-recurring-expenses-due-day-optional-check
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE recurring_expenses DROP CONSTRAINT ck_recurring_expenses_due_day_range;
+        - sql:
+            sql: ALTER TABLE recurring_expenses ADD CONSTRAINT ck_recurring_expenses_due_day_range CHECK (due_day IS NULL OR due_day BETWEEN 1 AND 31);
+      rollback:
+        - sql:
+            sql: ALTER TABLE recurring_expenses DROP CONSTRAINT ck_recurring_expenses_due_day_range;
+        - sql:
+            sql: ALTER TABLE recurring_expenses ADD CONSTRAINT ck_recurring_expenses_due_day_range CHECK (due_day BETWEEN 1 AND 31);

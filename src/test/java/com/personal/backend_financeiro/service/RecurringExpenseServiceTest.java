@@ -4,6 +4,7 @@ import com.personal.backend_financeiro.dto.recurringexpense.RecurringExpenseCrea
 import com.personal.backend_financeiro.dto.recurringexpense.RecurringExpenseUpdateRequest;
 import com.personal.backend_financeiro.entity.Category;
 import com.personal.backend_financeiro.entity.RecurringExpense;
+import com.personal.backend_financeiro.entity.User;
 import com.personal.backend_financeiro.enums.PaymentMethod;
 import com.personal.backend_financeiro.enums.RecurrenceFrequency;
 import com.personal.backend_financeiro.enums.RecurrenceStatus;
@@ -51,12 +52,12 @@ class RecurringExpenseServiceTest {
 	private RecurringExpenseService recurringExpenseService;
 
 	private static RecurringExpenseCreateRequest sampleCreateRequest(Long categoryId, RecurrenceFrequency frequency,
-			LocalDate startDate, LocalDate endDate, int dueDay) {
+			LocalDate startDate, LocalDate endDate, Integer dueDay) {
 		return new RecurringExpenseCreateRequest(categoryId, "Internet", new BigDecimal("119.90"),
 				PaymentMethod.CREDIT_CARD, "Plano residencial", frequency, dueDay, startDate, endDate);
 	}
 
-	private static RecurringExpenseUpdateRequest sampleUpdateRequest(Long categoryId, int dueDay, LocalDate endDate) {
+	private static RecurringExpenseUpdateRequest sampleUpdateRequest(Long categoryId, Integer dueDay, LocalDate endDate) {
 		return new RecurringExpenseUpdateRequest(categoryId, "Internet", new BigDecimal("119.90"),
 				PaymentMethod.CREDIT_CARD, "Plano residencial", dueDay, endDate);
 	}
@@ -104,6 +105,33 @@ class RecurringExpenseServiceTest {
 				.isInstanceOf(InvalidRequestException.class);
 
 		verify(recurringExpenseRepository, never()).save(any(RecurringExpense.class));
+	}
+
+	@Test
+	void create_allowsNullDueDay_andDefaultsGenerationToFirstDayOfMonth() {
+		RecurringExpenseCreateRequest request = sampleCreateRequest(9L, RecurrenceFrequency.MONTHLY,
+				LocalDate.of(2026, 8, 1), null, null);
+		RecurringExpense entity = new RecurringExpense();
+		when(categoryRepository.findByIdAndUserId(9L, 1L)).thenReturn(Optional.of(new Category()));
+		when(recurringExpenseMapper.toEntity(request)).thenReturn(entity);
+		when(userRepository.getReferenceById(1L)).thenReturn(new User());
+		when(recurringExpenseRepository.save(entity)).thenReturn(entity);
+
+		recurringExpenseService.create(1L, request);
+
+		assertThat(entity.getDueDay()).isNull();
+		assertThat(entity.getNextGenerationDate()).isEqualTo(LocalDate.of(2026, 8, 1));
+	}
+
+	@Test
+	void update_allowsClearingDueDay_recalculatingNextGenerationDateAsFirstDayOfMonth() {
+		RecurringExpense rule = ruleWithStatus(RecurrenceStatus.ACTIVE);
+		when(recurringExpenseRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(rule));
+		when(categoryRepository.findByIdAndUserId(9L, 1L)).thenReturn(Optional.of(new Category()));
+
+		recurringExpenseService.update(1L, 1L, sampleUpdateRequest(9L, null, null));
+
+		verify(recurringExpenseMapper).updateEntityFromRequest(any(), any());
 	}
 
 	@Test

@@ -133,6 +133,27 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 	}
 
 	@Test
+	void create_allowsNullDueDay_andGeneratesOnTheFirstDayOfTheMonth() throws Exception {
+		String token = registerAndLogin("Alice", "alice@example.com", "password123");
+		long categoryId = createCategory(token, "Home");
+		LocalDate today = LocalDate.now();
+		LocalDate expectedDate = YearMonth.from(today).atDay(1);
+
+		mockMvc.perform(post("/api/v1/recurring-expenses")
+						.header("Authorization", "Bearer " + token)
+						.contentType(APPLICATION_JSON)
+						.content(recurringExpenseBody(categoryId, "Reserva mensal", null, today, null)))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.dueDay").doesNotExist());
+
+		mockMvc.perform(get("/api/v1/expenses")
+						.header("Authorization", "Bearer " + token)
+						.param("recurring", "true"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.content[0].expenseDate").value(expectedDate.toString()));
+	}
+
+	@Test
 	void getOne_returns404_forOtherUsersRule() throws Exception {
 		String tokenAlice = registerAndLogin("Alice", "alice@example.com", "password123");
 		String tokenBob = registerAndLogin("Bob", "bob@example.com", "password123");
@@ -287,7 +308,7 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 		return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
 	}
 
-	private long createRecurringExpense(String token, long categoryId, String description, int dueDay,
+	private long createRecurringExpense(String token, long categoryId, String description, Integer dueDay,
 			LocalDate startDate, LocalDate endDate) throws Exception {
 		var result = mockMvc.perform(post("/api/v1/recurring-expenses")
 						.header("Authorization", "Bearer " + token)
@@ -298,12 +319,12 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 		return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
 	}
 
-	private String recurringExpenseBody(long categoryId, String description, int dueDay, LocalDate startDate, LocalDate endDate) {
+	private String recurringExpenseBody(long categoryId, String description, Integer dueDay, LocalDate startDate, LocalDate endDate) {
 		return """
 				{"categoryId":%d,"description":"%s","amount":119.90,
 				"paymentMethod":"CREDIT_CARD","notes":null,"frequency":"MONTHLY",
-				"dueDay":%d,"startDate":"%s","endDate":%s}"""
-				.formatted(categoryId, description, dueDay, startDate,
+				"dueDay":%s,"startDate":"%s","endDate":%s}"""
+				.formatted(categoryId, description, dueDay == null ? "null" : dueDay, startDate,
 						endDate == null ? "null" : "\"" + endDate + "\"");
 	}
 

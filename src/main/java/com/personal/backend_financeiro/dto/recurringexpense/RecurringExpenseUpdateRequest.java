@@ -32,10 +32,12 @@ public record RecurringExpenseUpdateRequest(
 		@Size(max = 500)
 		String notes,
 
-		@NotNull
 		@Min(value = 1, message = "O dia do vencimento deve estar entre 1 e 31.")
 		@Max(value = 31, message = "O dia do vencimento deve estar entre 1 e 31.")
-		@Schema(description = "Dia do vencimento (1-31). Alterar este valor numa regra ativa recalcula a próxima geração.", example = "10")
+		@Schema(description = """
+				Dia do vencimento (1-31), opcional (deixe em branco para uma despesa sem \
+				vencimento fixo). Alterar este valor numa regra ativa recalcula a próxima \
+				geração.""", example = "10")
 		Integer dueDay,
 
 		LocalDate endDate

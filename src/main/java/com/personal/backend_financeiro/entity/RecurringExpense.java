@@ -61,7 +61,7 @@ public class RecurringExpense extends Auditable {
 	@Column(nullable = false, length = 20)
 	private RecurrenceFrequency frequency;
 
-	@Column(name = "due_day", nullable = false)
+	@Column(name = "due_day")
 	private Integer dueDay;
 
 	@Column(name = "start_date", nullable = false)

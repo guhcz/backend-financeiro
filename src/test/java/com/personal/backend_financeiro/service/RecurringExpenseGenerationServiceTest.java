@@ -38,7 +38,7 @@ class RecurringExpenseGenerationServiceTest {
 	@InjectMocks
 	private RecurringExpenseGenerationService generationService;
 
-	private static RecurringExpense sampleRule(LocalDate startDate, LocalDate endDate, int dueDay) {
+	private static RecurringExpense sampleRule(LocalDate startDate, LocalDate endDate, Integer dueDay) {
 		return RecurringExpense.builder()
 				.id(1L)
 				.user(new User())
@@ -138,6 +138,18 @@ class RecurringExpenseGenerationServiceTest {
 		assertThat(saved.getRecurrenceReferenceYear()).isEqualTo(2027);
 		assertThat(saved.getRecurrenceReferenceMonth()).isEqualTo(2);
 		assertThat(rule.getNextGenerationDate()).isEqualTo(LocalDate.of(2027, 3, 31));
+	}
+
+	@Test
+	void generateInitialOccurrenceIfDue_usesFirstDayOfMonth_whenDueDayIsNull() {
+		RecurringExpense rule = sampleRule(LocalDate.of(2026, 8, 1), null, null);
+
+		generationService.generateInitialOccurrenceIfDue(rule, LocalDate.of(2026, 8, 5));
+
+		ArgumentCaptor<Expense> captor = ArgumentCaptor.forClass(Expense.class);
+		verify(expenseRepository).save(captor.capture());
+		assertThat(captor.getValue().getExpenseDate()).isEqualTo(LocalDate.of(2026, 8, 1));
+		assertThat(rule.getNextGenerationDate()).isEqualTo(LocalDate.of(2026, 9, 1));
 	}
 
 }

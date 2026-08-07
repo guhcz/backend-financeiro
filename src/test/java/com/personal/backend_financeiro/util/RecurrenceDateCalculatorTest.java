@@ -71,4 +71,32 @@ class RecurrenceDateCalculatorTest {
 		assertThat(result).isEqualTo(LocalDate.of(2026, 9, 10));
 	}
 
+	@Test
+	void resolveOccurrenceDate_defaultsToFirstDayOfMonth_whenDueDayIsNull() {
+		LocalDate result = RecurrenceDateCalculator.resolveOccurrenceDate(2026, 8, null);
+
+		assertThat(result).isEqualTo(LocalDate.of(2026, 8, 1));
+	}
+
+	@Test
+	void nextMonthOccurrence_defaultsToFirstDayOfNextMonth_whenDueDayIsNull() {
+		LocalDate result = RecurrenceDateCalculator.nextMonthOccurrence(LocalDate.of(2026, 8, 20), null);
+
+		assertThat(result).isEqualTo(LocalDate.of(2026, 9, 1));
+	}
+
+	@Test
+	void resolveNextGenerationDateFrom_returnsNextMonthFirstDay_whenDueDayIsNullAndTodayIsNotTheFirst() {
+		LocalDate result = RecurrenceDateCalculator.resolveNextGenerationDateFrom(LocalDate.of(2026, 8, 15), null);
+
+		assertThat(result).isEqualTo(LocalDate.of(2026, 9, 1));
+	}
+
+	@Test
+	void resolveNextGenerationDateFrom_returnsToday_whenDueDayIsNullAndTodayIsTheFirst() {
+		LocalDate result = RecurrenceDateCalculator.resolveNextGenerationDateFrom(LocalDate.of(2026, 8, 1), null);
+
+		assertThat(result).isEqualTo(LocalDate.of(2026, 8, 1));
+	}
+
 }

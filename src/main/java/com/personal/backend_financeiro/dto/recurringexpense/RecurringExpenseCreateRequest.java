@@ -37,10 +37,13 @@ public record RecurringExpenseCreateRequest(
 		@Schema(description = "Somente MONTHLY é suportado no momento.", example = "MONTHLY")
 		RecurrenceFrequency frequency,
 
-		@NotNull
 		@Min(value = 1, message = "O dia do vencimento deve estar entre 1 e 31.")
 		@Max(value = 31, message = "O dia do vencimento deve estar entre 1 e 31.")
-		@Schema(description = "Dia do vencimento (1-31). Se o mês não tiver esse dia, usa-se o último dia válido.", example = "10")
+		@Schema(description = """
+				Dia do vencimento (1-31), opcional. Se o mês não tiver esse dia, usa-se o \
+				último dia válido. Deixe em branco para uma despesa fixa sem data de \
+				vencimento (ex.: uma reserva mensal) — nesse caso a geração automática \
+				ainda ocorre todo mês, no dia 1, mas o campo permanece nulo.""", example = "10")
 		Integer dueDay,
 
 		@NotNull

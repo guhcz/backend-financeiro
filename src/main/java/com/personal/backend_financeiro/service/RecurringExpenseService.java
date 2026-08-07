@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -91,7 +92,7 @@ public class RecurringExpenseService {
 		recurringExpenseMapper.updateEntityFromRequest(request, rule);
 		rule.setCategory(category);
 
-		if (rule.getStatus() == RecurrenceStatus.ACTIVE && !request.dueDay().equals(oldDueDay)) {
+		if (rule.getStatus() == RecurrenceStatus.ACTIVE && !Objects.equals(request.dueDay(), oldDueDay)) {
 			rule.setNextGenerationDate(RecurrenceDateCalculator.resolveNextGenerationDateFrom(LocalDate.now(), request.dueDay()));
 		}
 
