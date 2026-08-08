@@ -27,7 +27,8 @@ class CategoryIntegrationTest extends AbstractApiIntegrationTest {
 		mockMvc.perform(get("/api/v1/categories")
 						.header("Authorization", "Bearer " + token))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.length()").value(1));
+				.andExpect(jsonPath("$.totalElements").value(1))
+				.andExpect(jsonPath("$.content[0].name").value("Food"));
 	}
 
 	@Test

@@ -12,6 +12,8 @@ import com.personal.backend_financeiro.repository.ExpenseRepository;
 import com.personal.backend_financeiro.repository.RecurringExpenseRepository;
 import com.personal.backend_financeiro.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,10 +43,14 @@ public class CategoryService {
 		return categoryMapper.toResponse(saved);
 	}
 
-	public List<CategoryResponse> listByUser(Long userId) {
+	public List<CategoryResponse> listAllByUser(Long userId) {
 		return categoryRepository.findByUserId(userId).stream()
 				.map(categoryMapper::toResponse)
 				.toList();
+	}
+
+	public Page<CategoryResponse> listByUser(Long userId, Pageable pageable) {
+		return categoryRepository.findByUserId(userId, pageable).map(categoryMapper::toResponse);
 	}
 
 	@Transactional

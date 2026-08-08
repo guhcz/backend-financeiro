@@ -7,6 +7,8 @@ import com.personal.backend_financeiro.service.CategoryService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,9 +37,14 @@ public class CategoryController {
 		return categoryService.create(currentUserProvider.getCurrentUserId(), request);
 	}
 
+	@GetMapping("/all")
+	public List<CategoryResponse> listAll() {
+		return categoryService.listAllByUser(currentUserProvider.getCurrentUserId());
+	}
+
 	@GetMapping
-	public List<CategoryResponse> list() {
-		return categoryService.listByUser(currentUserProvider.getCurrentUserId());
+	public Page<CategoryResponse> list(Pageable pageable) {
+		return categoryService.listByUser(currentUserProvider.getCurrentUserId(), pageable);
 	}
 
 	@PutMapping("/{id}")
