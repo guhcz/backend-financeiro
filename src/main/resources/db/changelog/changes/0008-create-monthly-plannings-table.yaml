@@ -1,0 +1,141 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0008-create-monthly-plannings-table
+      author: backend-financeiro
+      changes:
+        - createTable:
+            tableName: monthly_plannings
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_monthly_plannings
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: month
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: year
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: VARCHAR(180)
+              - column:
+                  name: updated_by
+                  type: VARCHAR(180)
+
+  - changeSet:
+      id: 0008-create-monthly-plannings-table-fk-user
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: monthly_plannings
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_monthly_plannings_user
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0008-create-monthly-plannings-table-fk-category
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: monthly_plannings
+            baseColumnNames: category_id
+            referencedTableName: categories
+            referencedColumnNames: id
+            constraintName: fk_monthly_plannings_category
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0008-create-monthly-plannings-table-unique-user-category-period
+      author: backend-financeiro
+      changes:
+        - addUniqueConstraint:
+            tableName: monthly_plannings
+            columnNames: user_id, category_id, month, year
+            constraintName: uk_monthly_plannings_user_category_period
+
+  - changeSet:
+      id: 0008-create-monthly-plannings-table-check-month
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE monthly_plannings ADD CONSTRAINT ck_monthly_plannings_month_range CHECK (month BETWEEN 1 AND 12);
+      rollback:
+        - sql:
+            sql: ALTER TABLE monthly_plannings DROP CONSTRAINT ck_monthly_plannings_month_range;
+
+  - changeSet:
+      id: 0008-create-monthly-plannings-table-check-year
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE monthly_plannings ADD CONSTRAINT ck_monthly_plannings_year_range CHECK (year >= 2000);
+      rollback:
+        - sql:
+            sql: ALTER TABLE monthly_plannings DROP CONSTRAINT ck_monthly_plannings_year_range;
+
+  - changeSet:
+      id: 0008-create-monthly-plannings-table-check-amount
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE monthly_plannings ADD CONSTRAINT ck_monthly_plannings_amount_positive CHECK (amount > 0);
+      rollback:
+        - sql:
+            sql: ALTER TABLE monthly_plannings DROP CONSTRAINT ck_monthly_plannings_amount_positive;
+
+  - changeSet:
+      id: 0008-create-monthly-plannings-table-index-user-period
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: monthly_plannings
+            indexName: idx_monthly_plannings_user_period
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: year
+              - column:
+                  name: month

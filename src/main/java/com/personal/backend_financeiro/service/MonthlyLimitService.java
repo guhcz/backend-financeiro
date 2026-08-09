@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +39,11 @@ public class MonthlyLimitService {
 		return monthlyLimitRepository.findByUserId(userId).stream()
 				.map(monthlyLimitMapper::toResponse)
 				.toList();
+	}
+
+	public Optional<MonthlyLimitResponse> findByPeriod(Long userId, Integer month, Integer year) {
+		return monthlyLimitRepository.findByUserIdAndYearAndMonth(userId, year, month)
+				.map(monthlyLimitMapper::toResponse);
 	}
 
 	@Transactional

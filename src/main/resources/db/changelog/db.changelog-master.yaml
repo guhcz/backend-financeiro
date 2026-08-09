@@ -20,4 +20,7 @@ databaseChangeLog:
   - include:
       file: changes/0007-make-recurring-expenses-due-day-optional.yaml
       relativeToChangelogFile: true
+  - include:
+      file: changes/0008-create-monthly-plannings-table.yaml
+      relativeToChangelogFile: true
 

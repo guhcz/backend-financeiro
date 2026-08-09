@@ -9,6 +9,7 @@ import com.personal.backend_financeiro.exception.ResourceNotFoundException;
 import com.personal.backend_financeiro.mapper.CategoryMapper;
 import com.personal.backend_financeiro.repository.CategoryRepository;
 import com.personal.backend_financeiro.repository.ExpenseRepository;
+import com.personal.backend_financeiro.repository.MonthlyPlanningRepository;
 import com.personal.backend_financeiro.repository.RecurringExpenseRepository;
 import com.personal.backend_financeiro.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class CategoryService {
 	private final UserRepository userRepository;
 	private final ExpenseRepository expenseRepository;
 	private final RecurringExpenseRepository recurringExpenseRepository;
+	private final MonthlyPlanningRepository monthlyPlanningRepository;
 	private final CategoryMapper categoryMapper;
 
 	@Transactional
@@ -83,6 +85,9 @@ public class CategoryService {
 		}
 		if (recurringExpenseRepository.existsByCategoryId(categoryId)) {
 			throw new ResourceInUseException("Category has recurring expenses and cannot be deleted: " + categoryId);
+		}
+		if (monthlyPlanningRepository.existsByCategoryId(categoryId)) {
+			throw new ResourceInUseException("Category has monthly plannings and cannot be deleted: " + categoryId);
 		}
 
 		categoryRepository.delete(category);

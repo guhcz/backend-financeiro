@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
@@ -62,6 +63,13 @@ class MonthlyLimitServiceTest {
 		when(monthlyLimitRepository.findByUserIdAndYearAndMonth(1L, 2026, 7)).thenReturn(Optional.of(existing));
 
 		monthlyLimitService.update(1L, 9L, sampleRequest());
+	}
+
+	@Test
+	void findByPeriod_returnsEmpty_whenNoLimitExistsForPeriod() {
+		when(monthlyLimitRepository.findByUserIdAndYearAndMonth(1L, 2026, 7)).thenReturn(Optional.empty());
+
+		assertThat(monthlyLimitService.findByPeriod(1L, 7, 2026)).isEmpty();
 	}
 
 	@Test

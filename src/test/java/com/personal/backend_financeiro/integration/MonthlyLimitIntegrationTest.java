@@ -3,7 +3,9 @@ package com.personal.backend_financeiro.integration;
 import org.junit.jupiter.api.Test;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class MonthlyLimitIntegrationTest extends AbstractApiIntegrationTest {
@@ -49,6 +51,36 @@ class MonthlyLimitIntegrationTest extends AbstractApiIntegrationTest {
 						.content("""
 								{"month":13,"year":2026,"amount":500.00}"""))
 				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void getByPeriod_returns200_whenLimitExists() throws Exception {
+		String token = registerAndLogin("Alice", "alice@example.com", "password123");
+
+		mockMvc.perform(post("/api/v1/monthly-limits")
+						.header("Authorization", "Bearer " + token)
+						.contentType(APPLICATION_JSON)
+						.content("""
+								{"month":8,"year":2026,"amount":1000.00}"""))
+				.andExpect(status().isCreated());
+
+		mockMvc.perform(get("/api/v1/monthly-limits/by-period")
+						.header("Authorization", "Bearer " + token)
+						.param("month", "8")
+						.param("year", "2026"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.amount").value(1000.00));
+	}
+
+	@Test
+	void getByPeriod_returns204_whenLimitDoesNotExist() throws Exception {
+		String token = registerAndLogin("Alice", "alice@example.com", "password123");
+
+		mockMvc.perform(get("/api/v1/monthly-limits/by-period")
+						.header("Authorization", "Bearer " + token)
+						.param("month", "8")
+						.param("year", "2026"))
+				.andExpect(status().isNoContent());
 	}
 
 }

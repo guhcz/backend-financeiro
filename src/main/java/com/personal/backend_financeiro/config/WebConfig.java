@@ -26,7 +26,9 @@ public class WebConfig {
 	@Bean
 	public CorsConfigurationSource corsConfigurationSource() {
 		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(corsProperties.allowedOrigins());
+		// Patterns (not setAllowedOrigins) so entries like "http://localhost:*" work
+		// with allowCredentials(true); exact origins still match as literal patterns.
+		configuration.setAllowedOriginPatterns(corsProperties.allowedOrigins());
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
 		configuration.setAllowedHeaders(List.of("*"));
 		configuration.setAllowCredentials(true);

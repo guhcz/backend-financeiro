@@ -10,6 +10,7 @@ import com.personal.backend_financeiro.exception.ResourceNotFoundException;
 import com.personal.backend_financeiro.mapper.CategoryMapper;
 import com.personal.backend_financeiro.repository.CategoryRepository;
 import com.personal.backend_financeiro.repository.ExpenseRepository;
+import com.personal.backend_financeiro.repository.MonthlyPlanningRepository;
 import com.personal.backend_financeiro.repository.RecurringExpenseRepository;
 import com.personal.backend_financeiro.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,8 @@ class CategoryServiceTest {
 	private ExpenseRepository expenseRepository;
 	@Mock
 	private RecurringExpenseRepository recurringExpenseRepository;
+	@Mock
+	private MonthlyPlanningRepository monthlyPlanningRepository;
 	@Mock
 	private CategoryMapper categoryMapper;
 
@@ -123,11 +126,26 @@ class CategoryServiceTest {
 	}
 
 	@Test
+	void delete_throwsResourceInUseException_whenCategoryHasMonthlyPlannings() {
+		Category category = new Category();
+		when(categoryRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(category));
+		when(expenseRepository.existsByCategoryId(5L)).thenReturn(false);
+		when(recurringExpenseRepository.existsByCategoryId(5L)).thenReturn(false);
+		when(monthlyPlanningRepository.existsByCategoryId(5L)).thenReturn(true);
+
+		assertThatThrownBy(() -> categoryService.delete(1L, 5L))
+				.isInstanceOf(ResourceInUseException.class);
+
+		verify(categoryRepository, never()).delete(any());
+	}
+
+	@Test
 	void delete_deletesCategory_whenNoExpensesReferenceIt() {
 		Category category = new Category();
 		when(categoryRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(category));
 		when(expenseRepository.existsByCategoryId(5L)).thenReturn(false);
 		when(recurringExpenseRepository.existsByCategoryId(5L)).thenReturn(false);
+		when(monthlyPlanningRepository.existsByCategoryId(5L)).thenReturn(false);
 
 		categoryService.delete(1L, 5L);
 
