@@ -72,7 +72,9 @@ public class RecurringExpenseController {
 	@GetMapping
 	@Operation(summary = "Lista as regras de despesa recorrente do usuário autenticado", description = """
 			O filtro "active" aceita true (só regras ativas), false (pausadas ou encerradas) \
-			ou ausência do parâmetro (todas).""")
+			ou ausência do parâmetro (todas). referenceMonth e referenceYear (opcionais, mas devem \
+			ser informados juntos) filtram somente as regras vigentes naquele mês/ano, isto é, cujo \
+			período (startDate–endDate) sobrepõe o mês informado.""")
 	public Page<RecurringExpenseResponse> filter(@ModelAttribute RecurringExpenseFilterRequest filter, Pageable pageable) {
 		return recurringExpenseService.filter(currentUserProvider.getCurrentUserId(), filter, pageable);
 	}

@@ -4,6 +4,8 @@ import com.personal.backend_financeiro.entity.RecurringExpense;
 import com.personal.backend_financeiro.enums.RecurrenceStatus;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.time.LocalDate;
+
 /**
  * Each filter method returns {@link Specification#unrestricted()} when the filter does not
  * apply, matching the convention used in {@link ExpenseSpecifications}.
@@ -38,6 +40,19 @@ public final class RecurringExpenseSpecifications {
 			return Specification.unrestricted();
 		}
 		return (root, query, cb) -> cb.like(cb.lower(root.get("description")), "%" + text.toLowerCase() + "%");
+	}
+
+	/**
+	 * Matches rules whose period (startDate–endDate) overlaps the given month, i.e.
+	 * startDate <= monthEnd AND (endDate IS NULL OR endDate >= monthStart).
+	 */
+	public static Specification<RecurringExpense> activeDuring(LocalDate monthStart, LocalDate monthEnd) {
+		if (monthStart == null || monthEnd == null) {
+			return Specification.unrestricted();
+		}
+		return (root, query, cb) -> cb.and(
+				cb.lessThanOrEqualTo(root.get("startDate"), monthEnd),
+				cb.or(cb.isNull(root.get("endDate")), cb.greaterThanOrEqualTo(root.get("endDate"), monthStart)));
 	}
 
 }

@@ -16,6 +16,7 @@ import com.personal.backend_financeiro.repository.ExpenseRepository;
 import com.personal.backend_financeiro.repository.RecurringExpenseRepository;
 import com.personal.backend_financeiro.repository.RecurringExpenseSpecifications;
 import com.personal.backend_financeiro.repository.UserRepository;
+import com.personal.backend_financeiro.util.PlanningPeriodUtils;
 import com.personal.backend_financeiro.util.RecurrenceDateCalculator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -67,11 +68,20 @@ public class RecurringExpenseService {
 	}
 
 	public Page<RecurringExpenseResponse> filter(Long userId, RecurringExpenseFilterRequest filter, Pageable pageable) {
+		LocalDate monthStart = null;
+		LocalDate monthEnd = null;
+		if (filter.referenceMonth() != null || filter.referenceYear() != null) {
+			PlanningPeriodUtils.assertValid(filter.referenceMonth(), filter.referenceYear());
+			monthStart = PlanningPeriodUtils.firstDayOf(filter.referenceYear(), filter.referenceMonth());
+			monthEnd = PlanningPeriodUtils.lastDayOf(filter.referenceYear(), filter.referenceMonth());
+		}
+
 		Specification<RecurringExpense> spec = Specification
 				.where(RecurringExpenseSpecifications.belongsToUser(userId))
 				.and(RecurringExpenseSpecifications.matchesActiveFilter(filter.active()))
 				.and(RecurringExpenseSpecifications.hasCategory(filter.categoryId()))
-				.and(RecurringExpenseSpecifications.descriptionContains(filter.description()));
+				.and(RecurringExpenseSpecifications.descriptionContains(filter.description()))
+				.and(RecurringExpenseSpecifications.activeDuring(monthStart, monthEnd));
 
 		return recurringExpenseRepository.findAll(spec, pageable).map(recurringExpenseMapper::toResponse);
 	}
