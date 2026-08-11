@@ -45,4 +45,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
 			""")
 	List<DateTotalProjection> sumAmountGroupedByDate(@Param("userId") Long userId, @Param("start") LocalDate start, @Param("end") LocalDate end);
 
+	List<Expense> findTop5ByUserIdAndExpenseDateBetweenOrderByExpenseDateDescCreatedAtDesc(
+			Long userId, LocalDate start, LocalDate end);
+
 }

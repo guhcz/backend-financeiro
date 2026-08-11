@@ -4,6 +4,7 @@ import com.personal.backend_financeiro.dto.user.CreateUserRequest;
 import com.personal.backend_financeiro.dto.user.UserResponse;
 import com.personal.backend_financeiro.entity.User;
 import com.personal.backend_financeiro.exception.DuplicateResourceException;
+import com.personal.backend_financeiro.exception.ResourceNotFoundException;
 import com.personal.backend_financeiro.mapper.UserMapper;
 import com.personal.backend_financeiro.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,12 @@ public class UserService {
 
 		User saved = userRepository.save(user);
 		return userMapper.toResponse(saved);
+	}
+
+	public UserResponse getCurrentUser(Long userId) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+		return userMapper.toResponse(user);
 	}
 
 }
