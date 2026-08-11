@@ -9,8 +9,10 @@ import com.personal.backend_financeiro.exception.ResourceNotFoundException;
 import com.personal.backend_financeiro.mapper.CategoryMapper;
 import com.personal.backend_financeiro.repository.CategoryRepository;
 import com.personal.backend_financeiro.repository.ExpenseRepository;
+import com.personal.backend_financeiro.repository.IncomeRepository;
 import com.personal.backend_financeiro.repository.MonthlyPlanningRepository;
 import com.personal.backend_financeiro.repository.RecurringExpenseRepository;
+import com.personal.backend_financeiro.repository.RecurringIncomeRepository;
 import com.personal.backend_financeiro.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,6 +31,8 @@ public class CategoryService {
 	private final UserRepository userRepository;
 	private final ExpenseRepository expenseRepository;
 	private final RecurringExpenseRepository recurringExpenseRepository;
+	private final IncomeRepository incomeRepository;
+	private final RecurringIncomeRepository recurringIncomeRepository;
 	private final MonthlyPlanningRepository monthlyPlanningRepository;
 	private final CategoryMapper categoryMapper;
 
@@ -85,6 +89,12 @@ public class CategoryService {
 		}
 		if (recurringExpenseRepository.existsByCategoryId(categoryId)) {
 			throw new ResourceInUseException("Category has recurring expenses and cannot be deleted: " + categoryId);
+		}
+		if (incomeRepository.existsByCategoryId(categoryId)) {
+			throw new ResourceInUseException("Category has incomes and cannot be deleted: " + categoryId);
+		}
+		if (recurringIncomeRepository.existsByCategoryId(categoryId)) {
+			throw new ResourceInUseException("Category has recurring incomes and cannot be deleted: " + categoryId);
 		}
 		if (monthlyPlanningRepository.existsByCategoryId(categoryId)) {
 			throw new ResourceInUseException("Category has monthly plannings and cannot be deleted: " + categoryId);

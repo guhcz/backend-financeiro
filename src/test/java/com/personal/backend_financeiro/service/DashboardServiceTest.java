@@ -13,6 +13,7 @@ import com.personal.backend_financeiro.enums.RecurrenceStatus;
 import com.personal.backend_financeiro.exception.InvalidRequestException;
 import com.personal.backend_financeiro.mapper.CategoryMapper;
 import com.personal.backend_financeiro.repository.ExpenseRepository;
+import com.personal.backend_financeiro.repository.IncomeRepository;
 import com.personal.backend_financeiro.repository.RecurringExpenseRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,8 @@ class DashboardServiceTest {
 	@Mock
 	private ExpenseRepository expenseRepository;
 	@Mock
+	private IncomeRepository incomeRepository;
+	@Mock
 	private RecurringExpenseRepository recurringExpenseRepository;
 	@Mock
 	private CategoryMapper categoryMapper;
@@ -57,6 +60,7 @@ class DashboardServiceTest {
 		lenient().when(expenseRepository.findTop5ByUserIdAndExpenseDateBetweenOrderByExpenseDateDescCreatedAtDesc(
 				anyLong(), any(), any())).thenReturn(List.of());
 		lenient().when(expenseRepository.sumAmountByUserAndPeriod(anyLong(), any(), any())).thenReturn(BigDecimal.ZERO);
+		lenient().when(incomeRepository.sumAmountByUserAndPeriod(anyLong(), any(), any())).thenReturn(BigDecimal.ZERO);
 		lenient().when(recurringExpenseRepository.countByUserIdAndStatus(anyLong(), eq(RecurrenceStatus.ACTIVE))).thenReturn(0L);
 		lenient().when(recurringExpenseRepository.countDueBetween(anyLong(), any(), any())).thenReturn(0L);
 		lenient().when(recurringExpenseRepository.sumAmountDueOn(anyLong(), any())).thenReturn(BigDecimal.ZERO);
@@ -82,15 +86,17 @@ class DashboardServiceTest {
 	}
 
 	@Test
-	void summary_hasNullIncomeAndBalance_regardlessOfLimit() {
+	void summary_computesTotalIncomeAndBalance_fromIncomeRepository() {
 		when(planningService.summary(USER_ID, 8, 2026))
 				.thenReturn(summary(new BigDecimal("5000.00"), new BigDecimal("1000.00"),
 						new BigDecimal("4000.00"), new BigDecimal("20.00")));
+		when(incomeRepository.sumAmountByUserAndPeriod(eq(USER_ID), any(), any()))
+				.thenReturn(new BigDecimal("2500.00"));
 
 		DashboardResponse result = dashboardService.getDashboard(USER_ID, 8, 2026);
 
-		assertThat(result.summary().totalIncome()).isNull();
-		assertThat(result.summary().balance()).isNull();
+		assertThat(result.summary().totalIncome()).isEqualByComparingTo("2500.00");
+		assertThat(result.summary().balance()).isEqualByComparingTo("1500.00");
 		assertThat(result.summary().totalExpenses()).isEqualByComparingTo("1000.00");
 	}
 

@@ -23,4 +23,13 @@ databaseChangeLog:
   - include:
       file: changes/0008-create-monthly-plannings-table.yaml
       relativeToChangelogFile: true
+  - include:
+      file: changes/0009-create-incomes-table.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0010-create-recurring-incomes-table.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0011-add-recurrence-columns-to-incomes.yaml
+      relativeToChangelogFile: true
 

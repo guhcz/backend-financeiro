@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0011-add-recurrence-columns-to-incomes
+      author: backend-financeiro
+      changes:
+        - addColumn:
+            tableName: incomes
+            columns:
+              - column:
+                  name: recurring_income_id
+                  type: BIGINT
+              - column:
+                  name: generated_automatically
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: recurrence_reference_year
+                  type: INTEGER
+              - column:
+                  name: recurrence_reference_month
+                  type: INTEGER
+
+  - changeSet:
+      id: 0011-add-recurrence-columns-to-incomes-fk-recurring-income
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: incomes
+            baseColumnNames: recurring_income_id
+            referencedTableName: recurring_incomes
+            referencedColumnNames: id
+            constraintName: fk_incomes_recurring_income
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0011-add-recurrence-columns-to-incomes-unique-recurring-ref
+      author: backend-financeiro
+      changes:
+        - addUniqueConstraint:
+            tableName: incomes
+            columnNames: recurring_income_id, recurrence_reference_year, recurrence_reference_month
+            constraintName: uk_incomes_recurring_ref
+
+  - changeSet:
+      id: 0011-add-recurrence-columns-to-incomes-check-reference-month
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE incomes ADD CONSTRAINT ck_incomes_recurrence_reference_month_range CHECK (recurrence_reference_month IS NULL OR recurrence_reference_month BETWEEN 1 AND 12);
+      rollback:
+        - sql:
+            sql: ALTER TABLE incomes DROP CONSTRAINT ck_incomes_recurrence_reference_month_range;
+
+  - changeSet:
+      id: 0011-add-recurrence-columns-to-incomes-index-recurring-income
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: incomes
+            indexName: idx_incomes_recurring_income
+            columns:
+              - column:
+                  name: recurring_income_id

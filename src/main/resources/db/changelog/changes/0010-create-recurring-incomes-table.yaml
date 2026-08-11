@@ -1,0 +1,186 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0010-create-recurring-incomes-table
+      author: backend-financeiro
+      changes:
+        - createTable:
+            tableName: recurring_incomes
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_recurring_incomes
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: category_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: amount
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: receipt_method
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: notes
+                  type: VARCHAR(500)
+              - column:
+                  name: frequency
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: receipt_day
+                  type: INTEGER
+              - column:
+                  name: start_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: end_date
+                  type: DATE
+              - column:
+                  name: next_generation_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: ACTIVE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: VARCHAR(180)
+              - column:
+                  name: updated_by
+                  type: VARCHAR(180)
+
+  - changeSet:
+      id: 0010-create-recurring-incomes-table-fk-user
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: recurring_incomes
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_recurring_incomes_user
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0010-create-recurring-incomes-table-fk-category
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: recurring_incomes
+            baseColumnNames: category_id
+            referencedTableName: categories
+            referencedColumnNames: id
+            constraintName: fk_recurring_incomes_category
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0010-create-recurring-incomes-table-check-amount
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE recurring_incomes ADD CONSTRAINT ck_recurring_incomes_amount_positive CHECK (amount > 0);
+      rollback:
+        - sql:
+            sql: ALTER TABLE recurring_incomes DROP CONSTRAINT ck_recurring_incomes_amount_positive;
+
+  - changeSet:
+      id: 0010-create-recurring-incomes-table-check-receipt-day
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE recurring_incomes ADD CONSTRAINT ck_recurring_incomes_receipt_day_range CHECK (receipt_day IS NULL OR receipt_day BETWEEN 1 AND 31);
+      rollback:
+        - sql:
+            sql: ALTER TABLE recurring_incomes DROP CONSTRAINT ck_recurring_incomes_receipt_day_range;
+
+  - changeSet:
+      id: 0010-create-recurring-incomes-table-check-end-date
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE recurring_incomes ADD CONSTRAINT ck_recurring_incomes_end_date_range CHECK (end_date IS NULL OR end_date >= start_date);
+      rollback:
+        - sql:
+            sql: ALTER TABLE recurring_incomes DROP CONSTRAINT ck_recurring_incomes_end_date_range;
+
+  - changeSet:
+      id: 0010-create-recurring-incomes-table-check-status
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE recurring_incomes ADD CONSTRAINT ck_recurring_incomes_status_valid CHECK (status IN ('ACTIVE','PAUSED','ENDED'));
+      rollback:
+        - sql:
+            sql: ALTER TABLE recurring_incomes DROP CONSTRAINT ck_recurring_incomes_status_valid;
+
+  - changeSet:
+      id: 0010-create-recurring-incomes-table-index-user
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: recurring_incomes
+            indexName: idx_recurring_incomes_user
+            columns:
+              - column:
+                  name: user_id
+
+  - changeSet:
+      id: 0010-create-recurring-incomes-table-index-category
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: recurring_incomes
+            indexName: idx_recurring_incomes_category
+            columns:
+              - column:
+                  name: category_id
+
+  - changeSet:
+      id: 0010-create-recurring-incomes-table-index-status-next-generation
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: recurring_incomes
+            indexName: idx_recurring_incomes_status_next_generation
+            columns:
+              - column:
+                  name: status
+              - column:
+                  name: next_generation_date

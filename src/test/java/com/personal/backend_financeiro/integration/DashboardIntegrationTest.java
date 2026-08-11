@@ -43,8 +43,8 @@ class DashboardIntegrationTest extends AbstractApiIntegrationTest {
 						.param("month", "8")
 						.param("year", "2026"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.summary.totalIncome").doesNotExist())
-				.andExpect(jsonPath("$.summary.balance").doesNotExist())
+				.andExpect(jsonPath("$.summary.totalIncome").value(0))
+				.andExpect(jsonPath("$.summary.balance").value(0))
 				.andExpect(jsonPath("$.summary.totalExpenses").value(0))
 				.andExpect(jsonPath("$.summary.monthlyLimit").doesNotExist())
 				.andExpect(jsonPath("$.recentExpenses.length()").value(0))
@@ -126,6 +126,23 @@ class DashboardIntegrationTest extends AbstractApiIntegrationTest {
 	}
 
 	@Test
+	void dashboard_withIncomes_computesTotalIncomeAndBalance() throws Exception {
+		String token = registerAndLogin("Alice", "alice@example.com", "password123");
+		long categoryId = createCategory(token, "Salary");
+		createExpense(token, categoryId, "400.00", "2026-08-05");
+		createIncome(token, categoryId, "1000.00", "2026-08-01");
+
+		mockMvc.perform(get("/api/v1/dashboard")
+						.header("Authorization", "Bearer " + token)
+						.param("month", "8")
+						.param("year", "2026"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.summary.totalIncome").value(1000.00))
+				.andExpect(jsonPath("$.summary.totalExpenses").value(400.00))
+				.andExpect(jsonPath("$.summary.balance").value(600.00));
+	}
+
+	@Test
 	void dashboard_isIsolatedPerUser() throws Exception {
 		String tokenAlice = registerAndLogin("Alice", "alice@example.com", "password123");
 		String tokenBob = registerAndLogin("Bob", "bob@example.com", "password123");
@@ -168,6 +185,17 @@ class DashboardIntegrationTest extends AbstractApiIntegrationTest {
 						.content("""
 								{"categoryId":%d,"description":"Expense","amount":%s,
 								"expenseDate":"%s","paymentMethod":"PIX","notes":null}"""
+								.formatted(categoryId, amount, date)))
+				.andExpect(status().isCreated());
+	}
+
+	private void createIncome(String token, long categoryId, String amount, String date) throws Exception {
+		mockMvc.perform(post("/api/v1/incomes")
+						.header("Authorization", "Bearer " + token)
+						.contentType(APPLICATION_JSON)
+						.content("""
+								{"categoryId":%d,"description":"Income","amount":%s,
+								"incomeDate":"%s","receiptMethod":"PIX","notes":null}"""
 								.formatted(categoryId, amount, date)))
 				.andExpect(status().isCreated());
 	}

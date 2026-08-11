@@ -13,6 +13,7 @@ import com.personal.backend_financeiro.enums.FinancialStatusType;
 import com.personal.backend_financeiro.enums.RecurrenceStatus;
 import com.personal.backend_financeiro.mapper.CategoryMapper;
 import com.personal.backend_financeiro.repository.ExpenseRepository;
+import com.personal.backend_financeiro.repository.IncomeRepository;
 import com.personal.backend_financeiro.repository.RecurringExpenseRepository;
 import com.personal.backend_financeiro.util.PlanningPeriodUtils;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class DashboardService {
 
 	private final PlanningService planningService;
 	private final ExpenseRepository expenseRepository;
+	private final IncomeRepository incomeRepository;
 	private final RecurringExpenseRepository recurringExpenseRepository;
 	private final CategoryMapper categoryMapper;
 
@@ -47,11 +49,12 @@ public class DashboardService {
 		PlanningPeriodUtils.assertValid(month, year);
 
 		PlanningSummaryResponse planningSummary = planningService.summary(userId, month, year);
+		BigDecimal totalIncome = totalIncome(userId, month, year);
 
 		DashboardSummaryResponse summary = new DashboardSummaryResponse(
-				null,
+				totalIncome,
 				planningSummary.totalSpent(),
-				null,
+				totalIncome.subtract(planningSummary.totalSpent()),
 				planningSummary.monthlyLimit(),
 				planningSummary.availableAmount(),
 				planningSummary.percentageUsed());
@@ -71,6 +74,12 @@ public class DashboardService {
 				recurringExpensesSummary(userId),
 				averageDailyExpense(month, year, planningSummary.totalSpent()),
 				financialStatus(planningSummary.percentageUsed()));
+	}
+
+	private BigDecimal totalIncome(Long userId, Integer month, Integer year) {
+		LocalDate start = PlanningPeriodUtils.firstDayOf(year, month);
+		LocalDate end = PlanningPeriodUtils.lastDayOf(year, month);
+		return incomeRepository.sumAmountByUserAndPeriod(userId, start, end);
 	}
 
 	private List<DashboardRecentExpenseResponse> recentExpenses(Long userId, Integer month, Integer year) {
