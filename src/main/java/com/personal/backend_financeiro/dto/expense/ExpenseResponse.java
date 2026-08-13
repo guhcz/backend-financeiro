@@ -1,6 +1,7 @@
 package com.personal.backend_financeiro.dto.expense;
 
 import com.personal.backend_financeiro.dto.category.CategoryResponse;
+import com.personal.backend_financeiro.dto.creditcard.CreditCardResponse;
 import com.personal.backend_financeiro.enums.PaymentMethod;
 
 import java.math.BigDecimal;
@@ -18,7 +19,10 @@ public record ExpenseResponse(
 		boolean active,
 		boolean generatedAutomatically,
 		boolean recurring,
-		Long recurringExpenseId
+		Long recurringExpenseId,
+		CreditCardResponse creditCard,
+		Integer billingMonth,
+		Integer billingYear
 
 ) {
 }

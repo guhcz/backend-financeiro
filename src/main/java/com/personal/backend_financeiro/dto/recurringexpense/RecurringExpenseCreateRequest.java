@@ -49,7 +49,10 @@ public record RecurringExpenseCreateRequest(
 		@NotNull
 		LocalDate startDate,
 
-		LocalDate endDate
+		LocalDate endDate,
+
+		@Schema(description = "Obrigatório quando paymentMethod é CREDIT_CARD; ignorado para os demais meios.")
+		Long creditCardId
 
 ) {
 }

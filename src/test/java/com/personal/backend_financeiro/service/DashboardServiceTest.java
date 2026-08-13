@@ -57,7 +57,7 @@ class DashboardServiceTest {
 
 	@BeforeEach
 	void baseline() {
-		lenient().when(expenseRepository.findTop5ByUserIdAndExpenseDateBetweenOrderByExpenseDateDescCreatedAtDesc(
+		lenient().when(expenseRepository.findTop5ByUserIdAndBillingYearAndBillingMonthOrderByExpenseDateDescCreatedAtDesc(
 				anyLong(), any(), any())).thenReturn(List.of());
 		lenient().when(expenseRepository.sumAmountByUserAndPeriod(anyLong(), any(), any())).thenReturn(BigDecimal.ZERO);
 		lenient().when(incomeRepository.sumAmountByUserAndPeriod(anyLong(), any(), any())).thenReturn(BigDecimal.ZERO);
@@ -157,8 +157,7 @@ class DashboardServiceTest {
 	@Test
 	void monthlyExpenseHistory_returnsSixMonthsEndingOnSelected_zeroFillingMonthsWithoutExpenses() {
 		when(planningService.summary(USER_ID, 2, 2026)).thenReturn(summary(null, BigDecimal.ZERO, null, null));
-		when(expenseRepository.sumAmountByUserAndPeriod(
-				eq(USER_ID), eq(LocalDate.of(2026, 2, 1)), eq(LocalDate.of(2026, 2, 28))))
+		when(expenseRepository.sumAmountByUserAndPeriod(eq(USER_ID), eq(2026), eq(2)))
 				.thenReturn(new BigDecimal("500.00"));
 
 		DashboardResponse result = dashboardService.getDashboard(USER_ID, 2, 2026);
@@ -195,7 +194,7 @@ class DashboardServiceTest {
 				.category(category)
 				.recurringExpense(new RecurringExpense())
 				.build();
-		when(expenseRepository.findTop5ByUserIdAndExpenseDateBetweenOrderByExpenseDateDescCreatedAtDesc(
+		when(expenseRepository.findTop5ByUserIdAndBillingYearAndBillingMonthOrderByExpenseDateDescCreatedAtDesc(
 				eq(USER_ID), any(), any()))
 				.thenReturn(List.of(recurringGeneratedExpense, manualExpense));
 		when(categoryMapper.toResponse(category)).thenReturn(new CategoryResponse(3L, "Alimentação", "#EF4444", "utensils", true));

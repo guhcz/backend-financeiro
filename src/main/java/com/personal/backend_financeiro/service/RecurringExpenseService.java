@@ -5,13 +5,16 @@ import com.personal.backend_financeiro.dto.recurringexpense.RecurringExpenseFilt
 import com.personal.backend_financeiro.dto.recurringexpense.RecurringExpenseResponse;
 import com.personal.backend_financeiro.dto.recurringexpense.RecurringExpenseUpdateRequest;
 import com.personal.backend_financeiro.entity.Category;
+import com.personal.backend_financeiro.entity.CreditCard;
 import com.personal.backend_financeiro.entity.RecurringExpense;
+import com.personal.backend_financeiro.enums.PaymentMethod;
 import com.personal.backend_financeiro.enums.RecurrenceFrequency;
 import com.personal.backend_financeiro.enums.RecurrenceStatus;
 import com.personal.backend_financeiro.exception.InvalidRequestException;
 import com.personal.backend_financeiro.exception.ResourceNotFoundException;
 import com.personal.backend_financeiro.mapper.RecurringExpenseMapper;
 import com.personal.backend_financeiro.repository.CategoryRepository;
+import com.personal.backend_financeiro.repository.CreditCardRepository;
 import com.personal.backend_financeiro.repository.ExpenseRepository;
 import com.personal.backend_financeiro.repository.RecurringExpenseRepository;
 import com.personal.backend_financeiro.repository.RecurringExpenseSpecifications;
@@ -35,6 +38,7 @@ public class RecurringExpenseService {
 
 	private final RecurringExpenseRepository recurringExpenseRepository;
 	private final CategoryRepository categoryRepository;
+	private final CreditCardRepository creditCardRepository;
 	private final UserRepository userRepository;
 	private final ExpenseRepository expenseRepository;
 	private final RecurringExpenseMapper recurringExpenseMapper;
@@ -43,6 +47,7 @@ public class RecurringExpenseService {
 	@Transactional
 	public RecurringExpenseResponse create(Long userId, RecurringExpenseCreateRequest request) {
 		Category category = findOwnedCategory(userId, request.categoryId());
+		CreditCard creditCard = resolveCreditCard(userId, request.paymentMethod(), request.creditCardId());
 
 		if (request.frequency() != RecurrenceFrequency.MONTHLY) {
 			throw new InvalidRequestException("Apenas a frequência MONTHLY é suportada no momento.");
@@ -54,6 +59,7 @@ public class RecurringExpenseService {
 		RecurringExpense rule = recurringExpenseMapper.toEntity(request);
 		rule.setUser(userRepository.getReferenceById(userId));
 		rule.setCategory(category);
+		rule.setCreditCard(creditCard);
 		rule.setStatus(RecurrenceStatus.ACTIVE);
 		rule.setNextGenerationDate(RecurrenceDateCalculator.resolveOccurrenceDate(request.startDate(), request.dueDay()));
 
@@ -97,10 +103,12 @@ public class RecurringExpenseService {
 		}
 
 		Category category = findOwnedCategory(userId, request.categoryId());
+		CreditCard creditCard = resolveCreditCard(userId, request.paymentMethod(), request.creditCardId());
 		Integer oldDueDay = rule.getDueDay();
 
 		recurringExpenseMapper.updateEntityFromRequest(request, rule);
 		rule.setCategory(category);
+		rule.setCreditCard(creditCard);
 
 		if (rule.getStatus() == RecurrenceStatus.ACTIVE && !Objects.equals(request.dueDay(), oldDueDay)) {
 			rule.setNextGenerationDate(RecurrenceDateCalculator.resolveNextGenerationDateFrom(LocalDate.now(), request.dueDay()));
@@ -154,6 +162,17 @@ public class RecurringExpenseService {
 	private Category findOwnedCategory(Long userId, Long categoryId) {
 		return categoryRepository.findByIdAndUserId(categoryId, userId)
 				.orElseThrow(() -> new ResourceNotFoundException("Category not found: " + categoryId));
+	}
+
+	private CreditCard resolveCreditCard(Long userId, PaymentMethod paymentMethod, Long creditCardId) {
+		if (paymentMethod != PaymentMethod.CREDIT_CARD) {
+			return null;
+		}
+		if (creditCardId == null) {
+			throw new InvalidRequestException("creditCardId is required when paymentMethod is CREDIT_CARD");
+		}
+		return creditCardRepository.findByIdAndUserId(creditCardId, userId)
+				.orElseThrow(() -> new ResourceNotFoundException("Credit card not found: " + creditCardId));
 	}
 
 }

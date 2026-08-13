@@ -30,9 +30,6 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class PlanningServiceTest {
 
-	private static final LocalDate START = LocalDate.of(2026, 8, 1);
-	private static final LocalDate END = LocalDate.of(2026, 8, 31);
-
 	@Mock
 	private ExpenseRepository expenseRepository;
 	@Mock
@@ -49,7 +46,7 @@ class PlanningServiceTest {
 
 	@Test
 	void summary_percentageBelow100_whenSpentIsLessThanLimit() {
-		when(expenseRepository.sumAmountByUserAndPeriod(1L, START, END)).thenReturn(new BigDecimal("5000.00"));
+		when(expenseRepository.sumAmountByUserAndPeriod(1L, 2026, 8)).thenReturn(new BigDecimal("5000.00"));
 		when(monthlyPlanningRepository.sumAmountByUserAndPeriod(1L, 8, 2026)).thenReturn(BigDecimal.ZERO);
 		when(monthlyLimitRepository.findByUserIdAndYearAndMonth(1L, 2026, 8))
 				.thenReturn(Optional.of(limit(new BigDecimal("10000.00"))));
@@ -62,7 +59,7 @@ class PlanningServiceTest {
 
 	@Test
 	void summary_percentageExactly100_whenSpentEqualsLimit() {
-		when(expenseRepository.sumAmountByUserAndPeriod(1L, START, END)).thenReturn(new BigDecimal("5000.00"));
+		when(expenseRepository.sumAmountByUserAndPeriod(1L, 2026, 8)).thenReturn(new BigDecimal("5000.00"));
 		when(monthlyPlanningRepository.sumAmountByUserAndPeriod(1L, 8, 2026)).thenReturn(BigDecimal.ZERO);
 		when(monthlyLimitRepository.findByUserIdAndYearAndMonth(1L, 2026, 8))
 				.thenReturn(Optional.of(limit(new BigDecimal("5000.00"))));
@@ -75,7 +72,7 @@ class PlanningServiceTest {
 
 	@Test
 	void summary_percentageAbove100_whenSpentExceedsLimit() {
-		when(expenseRepository.sumAmountByUserAndPeriod(1L, START, END)).thenReturn(new BigDecimal("5500.00"));
+		when(expenseRepository.sumAmountByUserAndPeriod(1L, 2026, 8)).thenReturn(new BigDecimal("5500.00"));
 		when(monthlyPlanningRepository.sumAmountByUserAndPeriod(1L, 8, 2026)).thenReturn(BigDecimal.ZERO);
 		when(monthlyLimitRepository.findByUserIdAndYearAndMonth(1L, 2026, 8))
 				.thenReturn(Optional.of(limit(new BigDecimal("5000.00"))));
@@ -88,7 +85,7 @@ class PlanningServiceTest {
 
 	@Test
 	void summary_withoutMonthlyLimit_returnsNullLimitFields_butKeepsSpentAndPlanned() {
-		when(expenseRepository.sumAmountByUserAndPeriod(1L, START, END)).thenReturn(new BigDecimal("8250.00"));
+		when(expenseRepository.sumAmountByUserAndPeriod(1L, 2026, 8)).thenReturn(new BigDecimal("8250.00"));
 		when(monthlyPlanningRepository.sumAmountByUserAndPeriod(1L, 8, 2026)).thenReturn(new BigDecimal("2300.00"));
 		when(monthlyLimitRepository.findByUserIdAndYearAndMonth(1L, 2026, 8)).thenReturn(Optional.empty());
 
@@ -104,7 +101,7 @@ class PlanningServiceTest {
 
 	@Test
 	void summary_userWithoutPlanningOrExpenses_returnsZeroTotals() {
-		when(expenseRepository.sumAmountByUserAndPeriod(1L, START, END)).thenReturn(BigDecimal.ZERO);
+		when(expenseRepository.sumAmountByUserAndPeriod(1L, 2026, 8)).thenReturn(BigDecimal.ZERO);
 		when(monthlyPlanningRepository.sumAmountByUserAndPeriod(1L, 8, 2026)).thenReturn(BigDecimal.ZERO);
 		when(monthlyLimitRepository.findByUserIdAndYearAndMonth(1L, 2026, 8)).thenReturn(Optional.empty());
 
@@ -116,7 +113,7 @@ class PlanningServiceTest {
 
 	@Test
 	void expensesByCategory_returnsEmptyList_whenNoExpenses() {
-		when(expenseRepository.sumAmountGroupedByCategory(1L, START, END)).thenReturn(List.of());
+		when(expenseRepository.sumAmountGroupedByCategory(1L, 2026, 8)).thenReturn(List.of());
 
 		List<CategoryExpenseResponse> result = planningService.expensesByCategory(1L, 8, 2026);
 
@@ -127,7 +124,7 @@ class PlanningServiceTest {
 	void expensesByCategory_computesPercentageAgainstGrandTotal() {
 		Category food = new Category();
 		food.setId(1L);
-		when(expenseRepository.sumAmountGroupedByCategory(1L, START, END))
+		when(expenseRepository.sumAmountGroupedByCategory(1L, 2026, 8))
 				.thenReturn(List.of(projection(1L, new BigDecimal("600.00"))));
 		when(categoryRepository.findAllById(List.of(1L))).thenReturn(List.of(food));
 		when(categoryMapper.toResponse(food)).thenReturn(new CategoryResponse(1L, "Food", "#FF0000", null, true));
@@ -140,7 +137,7 @@ class PlanningServiceTest {
 
 	@Test
 	void expenseEvolution_accumulatesMultipleDays() {
-		when(expenseRepository.sumAmountGroupedByDate(1L, START, END)).thenReturn(List.of(
+		when(expenseRepository.sumAmountGroupedByDate(1L, 2026, 8)).thenReturn(List.of(
 				dateProjection(LocalDate.of(2026, 8, 1), new BigDecimal("850.00")),
 				dateProjection(LocalDate.of(2026, 8, 5), new BigDecimal("1130.00"))));
 
@@ -153,7 +150,7 @@ class PlanningServiceTest {
 
 	@Test
 	void expenseEvolution_returnsEmptyList_whenUserHasNoExpenses() {
-		when(expenseRepository.sumAmountGroupedByDate(1L, START, END)).thenReturn(List.of());
+		when(expenseRepository.sumAmountGroupedByDate(1L, 2026, 8)).thenReturn(List.of());
 
 		List<ExpenseEvolutionPointResponse> points = planningService.expenseEvolution(1L, 8, 2026);
 

@@ -101,7 +101,7 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"Internet","amount":119.90,
-								"paymentMethod":"CREDIT_CARD","notes":null,"frequency":"WEEKLY",
+								"paymentMethod":"PIX","notes":null,"frequency":"WEEKLY",
 								"dueDay":10,"startDate":"%s","endDate":null}"""
 								.formatted(categoryId, LocalDate.now())))
 				.andExpect(status().isBadRequest());
@@ -199,7 +199,7 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"Internet","amount":150.00,
-								"paymentMethod":"CREDIT_CARD","notes":null,"dueDay":20,"endDate":null}"""
+								"paymentMethod":"PIX","notes":null,"dueDay":20,"endDate":null}"""
 								.formatted(categoryId)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.dueDay").value(20))
@@ -293,7 +293,7 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"Internet","amount":150.00,
-								"paymentMethod":"CREDIT_CARD","notes":null,"dueDay":20,"endDate":null}"""
+								"paymentMethod":"PIX","notes":null,"dueDay":20,"endDate":null}"""
 								.formatted(categoryId)))
 				.andExpect(status().isBadRequest());
 	}
@@ -322,7 +322,7 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 	private String recurringExpenseBody(long categoryId, String description, Integer dueDay, LocalDate startDate, LocalDate endDate) {
 		return """
 				{"categoryId":%d,"description":"%s","amount":119.90,
-				"paymentMethod":"CREDIT_CARD","notes":null,"frequency":"MONTHLY",
+				"paymentMethod":"PIX","notes":null,"frequency":"MONTHLY",
 				"dueDay":%s,"startDate":"%s","endDate":%s}"""
 				.formatted(categoryId, description, dueDay == null ? "null" : dueDay, startDate,
 						endDate == null ? "null" : "\"" + endDate + "\"");

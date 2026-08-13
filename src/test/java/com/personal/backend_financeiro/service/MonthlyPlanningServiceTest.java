@@ -24,7 +24,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -117,7 +116,7 @@ class MonthlyPlanningServiceTest {
 		PageRequest pageable = PageRequest.of(0, 10);
 		Page<MonthlyPlanning> page = new PageImpl<>(List.of(planning), pageable, 1);
 		when(monthlyPlanningRepository.findByUserIdAndMonthAndYear(1L, 8, 2026, pageable)).thenReturn(page);
-		when(expenseRepository.sumAmountGroupedByCategory(1L, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31)))
+		when(expenseRepository.sumAmountGroupedByCategory(1L, 2026, 8))
 				.thenReturn(List.of(projection(2L, new BigDecimal("620.00"))));
 		when(categoryMapper.toResponse(category)).thenReturn(new CategoryResponse(2L, "Food", "#FF0000", null, true));
 
@@ -141,7 +140,7 @@ class MonthlyPlanningServiceTest {
 		PageRequest pageable = PageRequest.of(0, 10);
 		Page<MonthlyPlanning> page = new PageImpl<>(List.of(planning), pageable, 1);
 		when(monthlyPlanningRepository.findByUserIdAndMonthAndYear(1L, 8, 2026, pageable)).thenReturn(page);
-		when(expenseRepository.sumAmountGroupedByCategory(1L, LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31)))
+		when(expenseRepository.sumAmountGroupedByCategory(1L, 2026, 8))
 				.thenReturn(List.of());
 		when(categoryMapper.toResponse(category)).thenReturn(new CategoryResponse(2L, "Food", "#FF0000", null, true));
 

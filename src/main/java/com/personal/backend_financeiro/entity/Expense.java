@@ -80,6 +80,22 @@ public class Expense extends Auditable {
 	@Column(name = "recurrence_reference_month")
 	private Integer recurrenceReferenceMonth;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "credit_card_id")
+	private CreditCard creditCard;
+
+	/**
+	 * Financial competence: the month/year this expense actually impacts plannings, the monthly
+	 * limit and reports. Always the month after {@link #expenseDate}, regardless of payment
+	 * method (see {@link com.personal.backend_financeiro.util.CompetenceResolver}). Always
+	 * server-computed, never trusted from client input.
+	 */
+	@Column(name = "billing_month", nullable = false)
+	private Integer billingMonth;
+
+	@Column(name = "billing_year", nullable = false)
+	private Integer billingYear;
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) {

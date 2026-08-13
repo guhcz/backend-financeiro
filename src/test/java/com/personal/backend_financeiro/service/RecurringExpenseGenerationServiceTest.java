@@ -45,7 +45,7 @@ class RecurringExpenseGenerationServiceTest {
 				.category(new Category())
 				.description("Internet")
 				.amount(new BigDecimal("119.90"))
-				.paymentMethod(PaymentMethod.CREDIT_CARD)
+				.paymentMethod(PaymentMethod.PIX)
 				.notes("Plano residencial")
 				.frequency(RecurrenceFrequency.MONTHLY)
 				.dueDay(dueDay)
@@ -131,12 +131,14 @@ class RecurringExpenseGenerationServiceTest {
 		assertThat(saved.getDescription()).isEqualTo("Internet");
 		assertThat(saved.getAmount()).isEqualByComparingTo("119.90");
 		assertThat(saved.getExpenseDate()).isEqualTo(LocalDate.of(2027, 2, 28));
-		assertThat(saved.getPaymentMethod()).isEqualTo(PaymentMethod.CREDIT_CARD);
+		assertThat(saved.getPaymentMethod()).isEqualTo(PaymentMethod.PIX);
 		assertThat(saved.getNotes()).isEqualTo("Plano residencial");
 		assertThat(saved.getRecurringExpense()).isSameAs(rule);
 		assertThat(saved.isGeneratedAutomatically()).isTrue();
 		assertThat(saved.getRecurrenceReferenceYear()).isEqualTo(2027);
 		assertThat(saved.getRecurrenceReferenceMonth()).isEqualTo(2);
+		assertThat(saved.getBillingMonth()).isEqualTo(3);
+		assertThat(saved.getBillingYear()).isEqualTo(2027);
 		assertThat(rule.getNextGenerationDate()).isEqualTo(LocalDate.of(2027, 3, 31));
 	}
 
@@ -150,6 +152,29 @@ class RecurringExpenseGenerationServiceTest {
 		verify(expenseRepository).save(captor.capture());
 		assertThat(captor.getValue().getExpenseDate()).isEqualTo(LocalDate.of(2026, 8, 1));
 		assertThat(rule.getNextGenerationDate()).isEqualTo(LocalDate.of(2026, 9, 1));
+	}
+
+	@Test
+	void generateForRule_creditCardRule_carriesCardAndComputesBillingMonth_likeAManualExpense() {
+		com.personal.backend_financeiro.entity.CreditCard nubank =
+				com.personal.backend_financeiro.entity.CreditCard.builder().id(5L).closingDay(20).dueDay(10).build();
+		RecurringExpense rule = sampleRule(LocalDate.of(2026, 8, 1), null, 15);
+		rule.setPaymentMethod(PaymentMethod.CREDIT_CARD);
+		rule.setCreditCard(nubank);
+		rule.setNextGenerationDate(LocalDate.of(2026, 8, 15));
+		when(recurringExpenseRepository.findById(1L)).thenReturn(Optional.of(rule));
+		when(expenseRepository.existsByRecurringExpenseIdAndRecurrenceReferenceYearAndRecurrenceReferenceMonth(1L, 2026, 8))
+				.thenReturn(false);
+
+		generationService.generateForRule(1L, LocalDate.of(2026, 8, 15));
+
+		ArgumentCaptor<Expense> captor = ArgumentCaptor.forClass(Expense.class);
+		verify(expenseRepository).save(captor.capture());
+		Expense saved = captor.getValue();
+		assertThat(saved.getExpenseDate()).isEqualTo(LocalDate.of(2026, 8, 15));
+		assertThat(saved.getCreditCard()).isSameAs(nubank);
+		assertThat(saved.getBillingMonth()).isEqualTo(9);
+		assertThat(saved.getBillingYear()).isEqualTo(2026);
 	}
 
 }

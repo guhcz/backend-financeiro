@@ -12,6 +12,7 @@ import com.personal.backend_financeiro.exception.InvalidRequestException;
 import com.personal.backend_financeiro.exception.ResourceNotFoundException;
 import com.personal.backend_financeiro.mapper.RecurringExpenseMapper;
 import com.personal.backend_financeiro.repository.CategoryRepository;
+import com.personal.backend_financeiro.repository.CreditCardRepository;
 import com.personal.backend_financeiro.repository.ExpenseRepository;
 import com.personal.backend_financeiro.repository.RecurringExpenseRepository;
 import com.personal.backend_financeiro.repository.UserRepository;
@@ -40,6 +41,8 @@ class RecurringExpenseServiceTest {
 	@Mock
 	private CategoryRepository categoryRepository;
 	@Mock
+	private CreditCardRepository creditCardRepository;
+	@Mock
 	private UserRepository userRepository;
 	@Mock
 	private ExpenseRepository expenseRepository;
@@ -54,12 +57,12 @@ class RecurringExpenseServiceTest {
 	private static RecurringExpenseCreateRequest sampleCreateRequest(Long categoryId, RecurrenceFrequency frequency,
 			LocalDate startDate, LocalDate endDate, Integer dueDay) {
 		return new RecurringExpenseCreateRequest(categoryId, "Internet", new BigDecimal("119.90"),
-				PaymentMethod.CREDIT_CARD, "Plano residencial", frequency, dueDay, startDate, endDate);
+				PaymentMethod.PIX, "Plano residencial", frequency, dueDay, startDate, endDate, null);
 	}
 
 	private static RecurringExpenseUpdateRequest sampleUpdateRequest(Long categoryId, Integer dueDay, LocalDate endDate) {
 		return new RecurringExpenseUpdateRequest(categoryId, "Internet", new BigDecimal("119.90"),
-				PaymentMethod.CREDIT_CARD, "Plano residencial", dueDay, endDate);
+				PaymentMethod.PIX, "Plano residencial", dueDay, endDate, null);
 	}
 
 	private static RecurringExpense ruleWithStatus(RecurrenceStatus status) {
@@ -274,6 +277,29 @@ class RecurringExpenseServiceTest {
 
 		assertThat(rule.getStatus()).isEqualTo(RecurrenceStatus.ENDED);
 		verify(recurringExpenseRepository, never()).delete(any(RecurringExpense.class));
+	}
+
+	@Test
+	void create_throwsInvalidRequestException_whenCreditCardMethodWithoutCreditCardId() {
+		when(categoryRepository.findByIdAndUserId(9L, 1L)).thenReturn(Optional.of(new Category()));
+		RecurringExpenseCreateRequest request = new RecurringExpenseCreateRequest(9L, "Internet", new BigDecimal("119.90"),
+				PaymentMethod.CREDIT_CARD, null, RecurrenceFrequency.MONTHLY, 10, LocalDate.of(2026, 8, 1), null, null);
+
+		assertThatThrownBy(() -> recurringExpenseService.create(1L, request))
+				.isInstanceOf(InvalidRequestException.class);
+
+		verify(recurringExpenseRepository, never()).save(any(RecurringExpense.class));
+	}
+
+	@Test
+	void create_throwsResourceNotFoundException_whenCreditCardNotOwnedByUser() {
+		when(categoryRepository.findByIdAndUserId(9L, 1L)).thenReturn(Optional.of(new Category()));
+		when(creditCardRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.empty());
+		RecurringExpenseCreateRequest request = new RecurringExpenseCreateRequest(9L, "Internet", new BigDecimal("119.90"),
+				PaymentMethod.CREDIT_CARD, null, RecurrenceFrequency.MONTHLY, 10, LocalDate.of(2026, 8, 1), null, 5L);
+
+		assertThatThrownBy(() -> recurringExpenseService.create(1L, request))
+				.isInstanceOf(ResourceNotFoundException.class);
 	}
 
 }

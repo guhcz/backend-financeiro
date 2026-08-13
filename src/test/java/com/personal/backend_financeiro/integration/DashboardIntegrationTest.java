@@ -64,7 +64,9 @@ class DashboardIntegrationTest extends AbstractApiIntegrationTest {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long categoryId = createCategory(token, "Food");
 		createMonthlyLimit(token, 8, 2026, "1000.00");
-		createExpense(token, categoryId, "850.00", "2026-08-05");
+		// Competence is always the month after the expense date, so an expense counted in
+		// August's dashboard must be dated in July.
+		createExpense(token, categoryId, "850.00", "2026-07-05");
 
 		mockMvc.perform(get("/api/v1/dashboard")
 						.header("Authorization", "Bearer " + token)
@@ -85,7 +87,7 @@ class DashboardIntegrationTest extends AbstractApiIntegrationTest {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long categoryId = createCategory(token, "Food");
 		for (int day = 1; day <= 6; day++) {
-			createExpense(token, categoryId, "10.00", "2026-08-0" + day);
+			createExpense(token, categoryId, "10.00", "2026-07-0" + day);
 		}
 
 		mockMvc.perform(get("/api/v1/dashboard")
@@ -94,8 +96,8 @@ class DashboardIntegrationTest extends AbstractApiIntegrationTest {
 						.param("year", "2026"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.recentExpenses.length()").value(5))
-				.andExpect(jsonPath("$.recentExpenses[0].expenseDate").value("2026-08-06"))
-				.andExpect(jsonPath("$.recentExpenses[4].expenseDate").value("2026-08-02"));
+				.andExpect(jsonPath("$.recentExpenses[0].expenseDate").value("2026-07-06"))
+				.andExpect(jsonPath("$.recentExpenses[4].expenseDate").value("2026-07-02"));
 	}
 
 	@Test
@@ -110,7 +112,7 @@ class DashboardIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"Internet","amount":119.90,
-								"paymentMethod":"CREDIT_CARD","notes":null,"frequency":"MONTHLY",
+								"paymentMethod":"PIX","notes":null,"frequency":"MONTHLY",
 								"dueDay":%d,"startDate":"%s","endDate":null}"""
 								.formatted(categoryId, today.getDayOfMonth(), tomorrow)))
 				.andExpect(status().isCreated());
@@ -129,8 +131,8 @@ class DashboardIntegrationTest extends AbstractApiIntegrationTest {
 	void dashboard_withIncomes_computesTotalIncomeAndBalance() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long categoryId = createCategory(token, "Salary");
-		createExpense(token, categoryId, "400.00", "2026-08-05");
-		createIncome(token, categoryId, "1000.00", "2026-08-01");
+		createExpense(token, categoryId, "400.00", "2026-07-05");
+		createIncome(token, categoryId, "1000.00", "2026-07-01");
 
 		mockMvc.perform(get("/api/v1/dashboard")
 						.header("Authorization", "Bearer " + token)

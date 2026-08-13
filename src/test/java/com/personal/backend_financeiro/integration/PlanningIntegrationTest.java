@@ -18,8 +18,9 @@ class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 		createMonthlyLimit(token, 8, 2026, "15000.00");
 		createPlanning(token, food, 8, 2026, "1800.00");
 		createPlanning(token, transport, 8, 2026, "500.00");
-		createExpense(token, food, "5250.00", "2026-08-05");
-		createExpense(token, transport, "3000.00", "2026-08-10");
+		// Competence is always the month after the expense date.
+		createExpense(token, food, "5250.00", "2026-07-05");
+		createExpense(token, transport, "3000.00", "2026-07-10");
 
 		mockMvc.perform(get("/api/v1/planning/summary")
 						.header("Authorization", "Bearer " + token)
@@ -39,7 +40,7 @@ class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long food = createCategory(token, "Food");
 		createPlanning(token, food, 8, 2026, "800.00");
-		createExpense(token, food, "620.00", "2026-08-05");
+		createExpense(token, food, "620.00", "2026-07-05");
 
 		mockMvc.perform(get("/api/v1/planning/summary")
 						.header("Authorization", "Bearer " + token)
@@ -95,8 +96,8 @@ class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long food = createCategory(token, "Food");
 		long transport = createCategory(token, "Transport");
-		createExpense(token, food, "600.00", "2026-08-05");
-		createExpense(token, transport, "400.00", "2026-08-10");
+		createExpense(token, food, "600.00", "2026-07-05");
+		createExpense(token, transport, "400.00", "2026-07-10");
 
 		mockMvc.perform(get("/api/v1/planning/expenses-by-category")
 						.header("Authorization", "Bearer " + token)
@@ -116,9 +117,11 @@ class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 	void expenseEvolution_accumulatesMultipleExpensesOnSameDay() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long food = createCategory(token, "Food");
-		createExpense(token, food, "300.00", "2026-08-01");
-		createExpense(token, food, "550.00", "2026-08-01");
-		createExpense(token, food, "1130.00", "2026-08-05");
+		// Competence is always the month after the expense date, so these count towards August
+		// even though the evolution points still show their real (July) date on the x-axis.
+		createExpense(token, food, "300.00", "2026-07-01");
+		createExpense(token, food, "550.00", "2026-07-01");
+		createExpense(token, food, "1130.00", "2026-07-05");
 
 		mockMvc.perform(get("/api/v1/planning/expense-evolution")
 						.header("Authorization", "Bearer " + token)
@@ -126,10 +129,10 @@ class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 						.param("year", "2026"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.length()").value(2))
-				.andExpect(jsonPath("$[0].date").value("2026-08-01"))
+				.andExpect(jsonPath("$[0].date").value("2026-07-01"))
 				.andExpect(jsonPath("$[0].dailyAmount").value(850.00))
 				.andExpect(jsonPath("$[0].accumulatedAmount").value(850.00))
-				.andExpect(jsonPath("$[1].date").value("2026-08-05"))
+				.andExpect(jsonPath("$[1].date").value("2026-07-05"))
 				.andExpect(jsonPath("$[1].dailyAmount").value(1130.00))
 				.andExpect(jsonPath("$[1].accumulatedAmount").value(1980.00));
 	}
@@ -151,7 +154,7 @@ class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long food = createCategory(token, "Food");
 		createMonthlyLimit(token, 8, 2026, "5000.00");
-		createExpense(token, food, "500.00", "2026-08-05");
+		createExpense(token, food, "500.00", "2026-07-05");
 
 		mockMvc.perform(get("/api/v1/planning/dashboard")
 						.header("Authorization", "Bearer " + token)

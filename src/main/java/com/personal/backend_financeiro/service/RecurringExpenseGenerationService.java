@@ -5,6 +5,7 @@ import com.personal.backend_financeiro.entity.RecurringExpense;
 import com.personal.backend_financeiro.enums.RecurrenceStatus;
 import com.personal.backend_financeiro.repository.ExpenseRepository;
 import com.personal.backend_financeiro.repository.RecurringExpenseRepository;
+import com.personal.backend_financeiro.util.CompetenceResolver;
 import com.personal.backend_financeiro.util.RecurrenceDateCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 
 @Slf4j
 @Service
@@ -63,6 +65,8 @@ public class RecurringExpenseGenerationService {
 			return;
 		}
 
+		YearMonth competence = CompetenceResolver.resolve(expenseDate);
+
 		Expense expense = Expense.builder()
 				.user(rule.getUser())
 				.category(rule.getCategory())
@@ -71,6 +75,9 @@ public class RecurringExpenseGenerationService {
 				.expenseDate(expenseDate)
 				.paymentMethod(rule.getPaymentMethod())
 				.notes(rule.getNotes())
+				.creditCard(rule.getCreditCard())
+				.billingMonth(competence.getMonthValue())
+				.billingYear(competence.getYear())
 				.recurringExpense(rule)
 				.generatedAutomatically(true)
 				.recurrenceReferenceYear(year)

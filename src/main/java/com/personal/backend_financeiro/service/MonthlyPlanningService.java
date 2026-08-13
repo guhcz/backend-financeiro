@@ -23,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -80,9 +79,7 @@ public class MonthlyPlanningService {
 
 		Page<MonthlyPlanning> page = monthlyPlanningRepository.findByUserIdAndMonthAndYear(userId, month, year, pageable);
 
-		LocalDate start = PlanningPeriodUtils.firstDayOf(year, month);
-		LocalDate end = PlanningPeriodUtils.lastDayOf(year, month);
-		Map<Long, BigDecimal> spentByCategory = expenseRepository.sumAmountGroupedByCategory(userId, start, end).stream()
+		Map<Long, BigDecimal> spentByCategory = expenseRepository.sumAmountGroupedByCategory(userId, year, month).stream()
 				.collect(Collectors.toMap(CategoryTotalProjection::getCategoryId, CategoryTotalProjection::getTotal));
 
 		return page.map(planning -> toItemResponse(planning, spentByCategory));

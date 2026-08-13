@@ -76,18 +76,21 @@ public class DashboardService {
 				financialStatus(planningSummary.percentageUsed()));
 	}
 
+	/**
+	 * Incomes have no stored competence column (see CompetenceResolver: always the month after
+	 * the record's own date); to find the incomes whose competence is the requested month, query
+	 * the real date range of the previous month instead.
+	 */
 	private BigDecimal totalIncome(Long userId, Integer month, Integer year) {
-		LocalDate start = PlanningPeriodUtils.firstDayOf(year, month);
-		LocalDate end = PlanningPeriodUtils.lastDayOf(year, month);
+		YearMonth incomePeriod = YearMonth.of(year, month).minusMonths(1);
+		LocalDate start = PlanningPeriodUtils.firstDayOf(incomePeriod.getYear(), incomePeriod.getMonthValue());
+		LocalDate end = PlanningPeriodUtils.lastDayOf(incomePeriod.getYear(), incomePeriod.getMonthValue());
 		return incomeRepository.sumAmountByUserAndPeriod(userId, start, end);
 	}
 
 	private List<DashboardRecentExpenseResponse> recentExpenses(Long userId, Integer month, Integer year) {
-		LocalDate start = PlanningPeriodUtils.firstDayOf(year, month);
-		LocalDate end = PlanningPeriodUtils.lastDayOf(year, month);
-
 		return expenseRepository
-				.findTop5ByUserIdAndExpenseDateBetweenOrderByExpenseDateDescCreatedAtDesc(userId, start, end)
+				.findTop5ByUserIdAndBillingYearAndBillingMonthOrderByExpenseDateDescCreatedAtDesc(userId, year, month)
 				.stream()
 				.limit(RECENT_EXPENSES_LIMIT)
 				.map(this::toRecentExpenseResponse)
@@ -111,9 +114,7 @@ public class DashboardService {
 
 		for (int i = HISTORY_MONTHS - 1; i >= 0; i--) {
 			YearMonth reference = selected.minusMonths(i);
-			LocalDate start = PlanningPeriodUtils.firstDayOf(reference.getYear(), reference.getMonthValue());
-			LocalDate end = PlanningPeriodUtils.lastDayOf(reference.getYear(), reference.getMonthValue());
-			BigDecimal amount = expenseRepository.sumAmountByUserAndPeriod(userId, start, end);
+			BigDecimal amount = expenseRepository.sumAmountByUserAndPeriod(userId, reference.getYear(), reference.getMonthValue());
 			history.add(new DashboardMonthlyExpenseResponse(reference.getMonthValue(), reference.getYear(), amount));
 		}
 

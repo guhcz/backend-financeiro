@@ -1,6 +1,7 @@
 package com.personal.backend_financeiro.dto.recurringexpense;
 
 import com.personal.backend_financeiro.dto.category.CategoryResponse;
+import com.personal.backend_financeiro.dto.creditcard.CreditCardResponse;
 import com.personal.backend_financeiro.enums.PaymentMethod;
 import com.personal.backend_financeiro.enums.RecurrenceFrequency;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -17,6 +18,7 @@ public record RecurringExpenseResponse(
 		BigDecimal amount,
 		PaymentMethod paymentMethod,
 		String notes,
+		CreditCardResponse creditCard,
 		RecurrenceFrequency frequency,
 		Integer dueDay,
 		LocalDate startDate,

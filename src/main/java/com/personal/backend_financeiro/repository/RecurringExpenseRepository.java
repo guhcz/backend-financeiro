@@ -18,6 +18,8 @@ public interface RecurringExpenseRepository extends JpaRepository<RecurringExpen
 
 	boolean existsByCategoryId(Long categoryId);
 
+	boolean existsByCreditCardId(Long creditCardId);
+
 	long countByUserIdAndStatus(Long userId, RecurrenceStatus status);
 
 	@Query("""

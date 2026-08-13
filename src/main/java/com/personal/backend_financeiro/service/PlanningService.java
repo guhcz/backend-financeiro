@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -43,10 +42,7 @@ public class PlanningService {
 	public PlanningSummaryResponse summary(Long userId, Integer month, Integer year) {
 		PlanningPeriodUtils.assertValid(month, year);
 
-		LocalDate start = PlanningPeriodUtils.firstDayOf(year, month);
-		LocalDate end = PlanningPeriodUtils.lastDayOf(year, month);
-
-		BigDecimal totalSpent = expenseRepository.sumAmountByUserAndPeriod(userId, start, end);
+		BigDecimal totalSpent = expenseRepository.sumAmountByUserAndPeriod(userId, year, month);
 		BigDecimal totalPlanned = monthlyPlanningRepository.sumAmountByUserAndPeriod(userId, month, year);
 
 		return monthlyLimitRepository.findByUserIdAndYearAndMonth(userId, year, month)
@@ -68,10 +64,7 @@ public class PlanningService {
 	public List<CategoryExpenseResponse> expensesByCategory(Long userId, Integer month, Integer year) {
 		PlanningPeriodUtils.assertValid(month, year);
 
-		LocalDate start = PlanningPeriodUtils.firstDayOf(year, month);
-		LocalDate end = PlanningPeriodUtils.lastDayOf(year, month);
-
-		List<CategoryTotalProjection> totals = expenseRepository.sumAmountGroupedByCategory(userId, start, end);
+		List<CategoryTotalProjection> totals = expenseRepository.sumAmountGroupedByCategory(userId, year, month);
 		if (totals.isEmpty()) {
 			return List.of();
 		}
@@ -95,10 +88,7 @@ public class PlanningService {
 	public List<ExpenseEvolutionPointResponse> expenseEvolution(Long userId, Integer month, Integer year) {
 		PlanningPeriodUtils.assertValid(month, year);
 
-		LocalDate start = PlanningPeriodUtils.firstDayOf(year, month);
-		LocalDate end = PlanningPeriodUtils.lastDayOf(year, month);
-
-		List<DateTotalProjection> dailyTotals = expenseRepository.sumAmountGroupedByDate(userId, start, end);
+		List<DateTotalProjection> dailyTotals = expenseRepository.sumAmountGroupedByDate(userId, year, month);
 
 		BigDecimal accumulated = BigDecimal.ZERO;
 		List<ExpenseEvolutionPointResponse> points = new ArrayList<>(dailyTotals.size());

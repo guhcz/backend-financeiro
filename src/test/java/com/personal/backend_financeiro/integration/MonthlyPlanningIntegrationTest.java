@@ -166,7 +166,8 @@ class MonthlyPlanningIntegrationTest extends AbstractApiIntegrationTest {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long categoryId = createCategory(token, "Food");
 		createPlanning(token, categoryId, 8, 2026, "1000.00");
-		createExpense(token, categoryId, "620.00", "2026-08-05");
+		// Competence is always the month after the expense date.
+		createExpense(token, categoryId, "620.00", "2026-07-05");
 
 		mockMvc.perform(get("/api/v1/monthly-plannings")
 						.header("Authorization", "Bearer " + token)

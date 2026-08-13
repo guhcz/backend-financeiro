@@ -29,7 +29,15 @@ public record ExpenseRequest(
 		PaymentMethod paymentMethod,
 
 		@Size(max = 500)
-		String notes
+		String notes,
+
+		/**
+		 * Required when paymentMethod is CREDIT_CARD (validated in ExpenseService, not here,
+		 * since the requirement is conditional on another field). Ignored for every other
+		 * payment method. Used only to track spend per card for card planning -- the invoice
+		 * cycle no longer affects financial competence (see CompetenceResolver).
+		 */
+		Long creditCardId
 
 ) {
 }

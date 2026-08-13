@@ -40,7 +40,10 @@ public record RecurringExpenseUpdateRequest(
 				geração.""", example = "10")
 		Integer dueDay,
 
-		LocalDate endDate
+		LocalDate endDate,
+
+		@Schema(description = "Obrigatório quando paymentMethod é CREDIT_CARD; ignorado para os demais meios.")
+		Long creditCardId
 
 ) {
 }

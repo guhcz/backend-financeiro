@@ -57,6 +57,10 @@ public class RecurringExpense extends Auditable {
 	@Column(length = 500)
 	private String notes;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "credit_card_id")
+	private CreditCard creditCard;
+
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
 	private RecurrenceFrequency frequency;

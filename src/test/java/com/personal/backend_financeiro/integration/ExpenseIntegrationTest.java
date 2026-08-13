@@ -160,7 +160,7 @@ class ExpenseIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"%s","amount":119.90,
-								"paymentMethod":"CREDIT_CARD","notes":null,"frequency":"MONTHLY",
+								"paymentMethod":"PIX","notes":null,"frequency":"MONTHLY",
 								"dueDay":%d,"startDate":"%s","endDate":null}"""
 								.formatted(categoryId, description, dueDay, startDate)))
 				.andExpect(status().isCreated())

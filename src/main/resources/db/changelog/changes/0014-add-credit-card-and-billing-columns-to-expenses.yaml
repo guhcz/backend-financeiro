@@ -1,0 +1,105 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0014-add-credit-card-and-billing-columns-to-expenses
+      author: backend-financeiro
+      changes:
+        - addColumn:
+            tableName: expenses
+            columns:
+              - column:
+                  name: credit_card_id
+                  type: BIGINT
+              - column:
+                  name: billing_month
+                  type: INTEGER
+              - column:
+                  name: billing_year
+                  type: INTEGER
+
+  - changeSet:
+      id: 0014-add-credit-card-and-billing-columns-to-expenses-fk-credit-card
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: expenses
+            baseColumnNames: credit_card_id
+            referencedTableName: credit_cards
+            referencedColumnNames: id
+            constraintName: fk_expenses_credit_card
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0014-add-credit-card-and-billing-columns-to-expenses-backfill
+      author: backend-financeiro
+      comment: >
+        Billing competence did not exist before this change and no expense had a credit card
+        linked to it (the entity did not exist), so the only safe fallback for pre-existing rows
+        -- including ones already labelled payment_method = 'CREDIT_CARD' -- is to treat their
+        billing period as their own expense_date's month/year. Going forward, new credit card
+        expenses compute the real invoice month from the linked card's closing/due day.
+      changes:
+        - sql:
+            sql: >
+              UPDATE expenses
+              SET billing_month = EXTRACT(MONTH FROM expense_date),
+                  billing_year = EXTRACT(YEAR FROM expense_date)
+              WHERE billing_month IS NULL;
+
+  - changeSet:
+      id: 0014-add-credit-card-and-billing-columns-to-expenses-not-null
+      author: backend-financeiro
+      changes:
+        - addNotNullConstraint:
+            tableName: expenses
+            columnName: billing_month
+            columnDataType: INTEGER
+        - addNotNullConstraint:
+            tableName: expenses
+            columnName: billing_year
+            columnDataType: INTEGER
+
+  - changeSet:
+      id: 0014-add-credit-card-and-billing-columns-to-expenses-check-billing-month
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE expenses ADD CONSTRAINT ck_expenses_billing_month_range CHECK (billing_month BETWEEN 1 AND 12);
+      rollback:
+        - sql:
+            sql: ALTER TABLE expenses DROP CONSTRAINT ck_expenses_billing_month_range;
+
+  - changeSet:
+      id: 0014-add-credit-card-and-billing-columns-to-expenses-check-billing-year
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE expenses ADD CONSTRAINT ck_expenses_billing_year_range CHECK (billing_year >= 2000);
+      rollback:
+        - sql:
+            sql: ALTER TABLE expenses DROP CONSTRAINT ck_expenses_billing_year_range;
+
+  - changeSet:
+      id: 0014-add-credit-card-and-billing-columns-to-expenses-index-billing-period
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: expenses
+            indexName: idx_expenses_user_billing_period
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: billing_year
+              - column:
+                  name: billing_month
+
+  - changeSet:
+      id: 0014-add-credit-card-and-billing-columns-to-expenses-index-credit-card
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: expenses
+            indexName: idx_expenses_credit_card
+            columns:
+              - column:
+                  name: credit_card_id
