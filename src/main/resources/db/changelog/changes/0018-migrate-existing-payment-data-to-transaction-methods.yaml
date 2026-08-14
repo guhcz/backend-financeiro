@@ -61,6 +61,35 @@ databaseChangeLog:
               WHERE name = 'Cartão de débito (legado)';
 
   - changeSet:
+      id: 0018-backfill-legacy-credit-fallback-cards
+      author: backend-financeiro
+      comment: >
+        Old CREDIT_CARD expenses/recurring expenses that never linked a credit_card (a data gap
+        predating strict validation, symmetric to the DEBIT_CARD case above) have no real card to
+        preserve -- one neutral "legacy credit" fallback card per affected user.
+      changes:
+        - sql:
+            sql: >
+              INSERT INTO credit_cards (user_id, name, closing_day, due_day, active, created_at, updated_at)
+              SELECT DISTINCT user_id, 'Cartão de crédito (legado)', NULL::INTEGER, NULL::INTEGER, true, now(), now()
+              FROM (
+                SELECT user_id FROM expenses WHERE payment_method = 'CREDIT_CARD' AND credit_card_id IS NULL
+                UNION
+                SELECT user_id FROM recurring_expenses WHERE payment_method = 'CREDIT_CARD' AND credit_card_id IS NULL
+              ) legacy_credit_users;
+
+  - changeSet:
+      id: 0018-backfill-legacy-credit-fallback-transaction-methods
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: >
+              INSERT INTO transaction_methods (user_id, name, type, active, credit_card_id, created_at, updated_at)
+              SELECT user_id, name, 'CARD', active, id, created_at, updated_at
+              FROM credit_cards
+              WHERE name = 'Cartão de crédito (legado)';
+
+  - changeSet:
       id: 0018-backfill-non-card-transaction-methods
       author: backend-financeiro
       comment: >

@@ -49,6 +49,21 @@ databaseChangeLog:
                 AND tm.user_id = e.user_id AND tm.type = e.payment_method AND tm.credit_card_id IS NULL;
 
   - changeSet:
+      id: 0019-backfill-expenses-transaction-method-legacy-credit
+      author: backend-financeiro
+      comment: >
+        CREDIT_CARD expenses that never linked a credit_card (data gap predating strict
+        validation) fall back to the per-user "Cartão de crédito (legado)" method created above.
+      changes:
+        - sql:
+            sql: >
+              UPDATE expenses e
+              SET transaction_method_id = tm.id, card_transaction_mode = 'CREDIT'
+              FROM transaction_methods tm
+              WHERE e.payment_method = 'CREDIT_CARD' AND e.credit_card_id IS NULL
+                AND tm.user_id = e.user_id AND tm.name = 'Cartão de crédito (legado)';
+
+  - changeSet:
       id: 0019-expenses-transaction-method-not-null
       author: backend-financeiro
       changes:

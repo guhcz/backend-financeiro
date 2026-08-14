@@ -4,6 +4,7 @@ import com.personal.backend_financeiro.dto.category.CategoryResponse;
 import com.personal.backend_financeiro.dto.transaction.TransactionFilterRequest;
 import com.personal.backend_financeiro.dto.transaction.TransactionResponse;
 import com.personal.backend_financeiro.dto.transaction.TransactionType;
+import com.personal.backend_financeiro.enums.CardTransactionMode;
 import com.personal.backend_financeiro.exception.InvalidRequestException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -41,7 +42,7 @@ public class TransactionRepository {
 	 */
 	private static final String FILTERED_UNION = """
 			SELECT e.id AS id, 'EXPENSE' AS type, e.description AS description, e.amount AS amount,
-			       e.expense_date AS occurred_on, tm.name AS method,
+			       e.expense_date AS occurred_on, tm.name AS method, e.card_transaction_mode AS card_transaction_mode,
 			       (e.recurring_expense_id IS NOT NULL) AS recurring,
 			       e.generated_automatically AS generated_automatically, e.notes AS notes,
 			       e.created_at AS created_at,
@@ -60,7 +61,7 @@ public class TransactionRepository {
 			  AND (:recurring IS NULL OR (e.recurring_expense_id IS NOT NULL) = :recurring)
 			UNION ALL
 			SELECT i.id, 'INCOME', i.description, i.amount,
-			       i.income_date, i.receipt_method,
+			       i.income_date, i.receipt_method, CAST(NULL AS VARCHAR),
 			       (i.recurring_income_id IS NOT NULL),
 			       i.generated_automatically, i.notes, i.created_at,
 			       c.id, c.name, c.color, c.icon, c.active,
@@ -99,6 +100,7 @@ public class TransactionRepository {
 					rs.getString("category_color"),
 					rs.getString("category_icon"),
 					rs.getBoolean("category_active"));
+			String cardTransactionMode = rs.getString("card_transaction_mode");
 			return new TransactionResponse(
 					id,
 					TransactionType.valueOf(type),
@@ -107,6 +109,7 @@ public class TransactionRepository {
 					rs.getBigDecimal("amount"),
 					rs.getObject("occurred_on", LocalDate.class),
 					rs.getString("method"),
+					cardTransactionMode == null ? null : CardTransactionMode.valueOf(cardTransactionMode),
 					rs.getBoolean("recurring"),
 					rs.getBoolean("generated_automatically"),
 					rs.getString("notes"),
