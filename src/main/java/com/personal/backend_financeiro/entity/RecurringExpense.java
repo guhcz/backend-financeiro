@@ -1,6 +1,6 @@
 package com.personal.backend_financeiro.entity;
 
-import com.personal.backend_financeiro.enums.PaymentMethod;
+import com.personal.backend_financeiro.enums.CardTransactionMode;
 import com.personal.backend_financeiro.enums.RecurrenceFrequency;
 import com.personal.backend_financeiro.enums.RecurrenceStatus;
 import jakarta.persistence.Column;
@@ -50,16 +50,20 @@ public class RecurringExpense extends Auditable {
 	@Column(nullable = false, precision = 12, scale = 2)
 	private BigDecimal amount;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "transaction_method_id", nullable = false)
+	private TransactionMethod transactionMethod;
+
+	/**
+	 * Only meaningful when transactionMethod.type == CARD (required in that case, null
+	 * otherwise) -- see CompetenceResolver.validateCardTransactionMode.
+	 */
 	@Enumerated(EnumType.STRING)
-	@Column(name = "payment_method", nullable = false, length = 20)
-	private PaymentMethod paymentMethod;
+	@Column(name = "card_transaction_mode", length = 10)
+	private CardTransactionMode cardTransactionMode;
 
 	@Column(length = 500)
 	private String notes;
-
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "credit_card_id")
-	private CreditCard creditCard;
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)

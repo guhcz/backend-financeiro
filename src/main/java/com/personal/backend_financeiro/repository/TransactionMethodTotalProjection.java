@@ -2,9 +2,9 @@ package com.personal.backend_financeiro.repository;
 
 import java.math.BigDecimal;
 
-public interface CreditCardTotalProjection {
+public interface TransactionMethodTotalProjection {
 
-	Long getCreditCardId();
+	Long getTransactionMethodId();
 
 	BigDecimal getTotal();
 

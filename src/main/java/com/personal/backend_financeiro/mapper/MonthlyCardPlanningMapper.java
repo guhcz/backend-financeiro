@@ -7,19 +7,19 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-@Mapper(componentModel = "spring", uses = CreditCardMapper.class)
+@Mapper(componentModel = "spring", uses = TransactionMethodMapper.class)
 public interface MonthlyCardPlanningMapper {
 
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "user", ignore = true)
-	@Mapping(target = "creditCard", ignore = true)
+	@Mapping(target = "transactionMethod", ignore = true)
 	MonthlyCardPlanning toEntity(MonthlyCardPlanningRequest request);
 
 	MonthlyCardPlanningResponse toResponse(MonthlyCardPlanning monthlyCardPlanning);
 
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "user", ignore = true)
-	@Mapping(target = "creditCard", ignore = true)
+	@Mapping(target = "transactionMethod", ignore = true)
 	@Mapping(target = "active", ignore = true)
 	void updateEntityFromRequest(MonthlyCardPlanningRequest request, @MappingTarget MonthlyCardPlanning monthlyCardPlanning);
 

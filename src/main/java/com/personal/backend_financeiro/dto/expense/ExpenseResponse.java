@@ -1,8 +1,8 @@
 package com.personal.backend_financeiro.dto.expense;
 
 import com.personal.backend_financeiro.dto.category.CategoryResponse;
-import com.personal.backend_financeiro.dto.creditcard.CreditCardResponse;
-import com.personal.backend_financeiro.enums.PaymentMethod;
+import com.personal.backend_financeiro.dto.transactionmethod.TransactionMethodResponse;
+import com.personal.backend_financeiro.enums.CardTransactionMode;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -14,13 +14,13 @@ public record ExpenseResponse(
 		String description,
 		BigDecimal amount,
 		LocalDate expenseDate,
-		PaymentMethod paymentMethod,
+		TransactionMethodResponse transactionMethod,
+		CardTransactionMode cardTransactionMode,
 		String notes,
 		boolean active,
 		boolean generatedAutomatically,
 		boolean recurring,
 		Long recurringExpenseId,
-		CreditCardResponse creditCard,
 		Integer billingMonth,
 		Integer billingYear
 

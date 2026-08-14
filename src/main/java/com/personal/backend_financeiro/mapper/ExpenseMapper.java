@@ -7,7 +7,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-@Mapper(componentModel = "spring", uses = { CategoryMapper.class, CreditCardMapper.class })
+@Mapper(componentModel = "spring", uses = { CategoryMapper.class, TransactionMethodMapper.class })
 public interface ExpenseMapper {
 
 	@Mapping(target = "id", ignore = true)
@@ -17,7 +17,8 @@ public interface ExpenseMapper {
 	@Mapping(target = "generatedAutomatically", ignore = true)
 	@Mapping(target = "recurrenceReferenceYear", ignore = true)
 	@Mapping(target = "recurrenceReferenceMonth", ignore = true)
-	@Mapping(target = "creditCard", ignore = true)
+	@Mapping(target = "transactionMethod", ignore = true)
+	@Mapping(target = "cardTransactionMode", ignore = true)
 	@Mapping(target = "billingMonth", ignore = true)
 	@Mapping(target = "billingYear", ignore = true)
 	Expense toEntity(ExpenseRequest request);
@@ -34,7 +35,8 @@ public interface ExpenseMapper {
 	@Mapping(target = "generatedAutomatically", ignore = true)
 	@Mapping(target = "recurrenceReferenceYear", ignore = true)
 	@Mapping(target = "recurrenceReferenceMonth", ignore = true)
-	@Mapping(target = "creditCard", ignore = true)
+	@Mapping(target = "transactionMethod", ignore = true)
+	@Mapping(target = "cardTransactionMode", ignore = true)
 	@Mapping(target = "billingMonth", ignore = true)
 	@Mapping(target = "billingYear", ignore = true)
 	void updateEntityFromRequest(ExpenseRequest request, @MappingTarget Expense expense);

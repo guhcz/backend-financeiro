@@ -1,16 +1,10 @@
-package com.personal.backend_financeiro.dto.creditcard;
+package com.personal.backend_financeiro.dto.transactionmethod;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
-public record CreditCardRequest(
-
-		@NotBlank
-		@Size(max = 100)
-		String name,
+public record TransactionMethodCardDetailsRequest(
 
 		@NotNull
 		@Min(1)

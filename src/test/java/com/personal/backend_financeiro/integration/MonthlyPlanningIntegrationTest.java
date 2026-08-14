@@ -165,13 +165,13 @@ class MonthlyPlanningIntegrationTest extends AbstractApiIntegrationTest {
 	void list_computesSpentRemainingAndPercentage() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long categoryId = createCategory(token, "Food");
-		createPlanning(token, categoryId, 8, 2026, "1000.00");
-		// Competence is always the month after the expense date.
+		createPlanning(token, categoryId, 7, 2026, "1000.00");
+		// Pix competence is the expense date's own month.
 		createExpense(token, categoryId, "620.00", "2026-07-05");
 
 		mockMvc.perform(get("/api/v1/monthly-plannings")
 						.header("Authorization", "Bearer " + token)
-						.param("month", "8")
+						.param("month", "7")
 						.param("year", "2026"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.content[0].plannedAmount").value(1000.00))
@@ -235,13 +235,14 @@ class MonthlyPlanningIntegrationTest extends AbstractApiIntegrationTest {
 	}
 
 	private long createExpense(String token, long categoryId, String amount, String date) throws Exception {
+		long transactionMethodId = createTransactionMethod(token, "Pix", "PIX");
 		var result = mockMvc.perform(post("/api/v1/expenses")
 						.header("Authorization", "Bearer " + token)
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"Expense","amount":%s,
-								"expenseDate":"%s","paymentMethod":"PIX","notes":null}"""
-								.formatted(categoryId, amount, date)))
+								"expenseDate":"%s","transactionMethodId":%d,"cardTransactionMode":null,"notes":null}"""
+								.formatted(categoryId, amount, date, transactionMethodId)))
 				.andExpect(status().isCreated())
 				.andReturn();
 		return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();

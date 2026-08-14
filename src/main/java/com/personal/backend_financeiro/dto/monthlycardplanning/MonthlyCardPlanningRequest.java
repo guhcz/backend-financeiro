@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 public record MonthlyCardPlanningRequest(
 
 		@NotNull
-		Long creditCardId,
+		Long transactionMethodId,
 
 		@NotNull
 		@Min(1)

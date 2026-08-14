@@ -1,6 +1,6 @@
 package com.personal.backend_financeiro.dto.expense;
 
-import com.personal.backend_financeiro.enums.PaymentMethod;
+import com.personal.backend_financeiro.enums.CardTransactionMode;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -26,18 +26,17 @@ public record ExpenseRequest(
 		LocalDate expenseDate,
 
 		@NotNull
-		PaymentMethod paymentMethod,
-
-		@Size(max = 500)
-		String notes,
+		Long transactionMethodId,
 
 		/**
-		 * Required when paymentMethod is CREDIT_CARD (validated in ExpenseService, not here,
-		 * since the requirement is conditional on another field). Ignored for every other
-		 * payment method. Used only to track spend per card for card planning -- the invoice
-		 * cycle no longer affects financial competence (see CompetenceResolver).
+		 * Required when transactionMethodId points to a type CARD method (validated in
+		 * ExpenseService, not here, since the requirement is conditional on another field).
+		 * Ignored/must be null for every other transaction method type.
 		 */
-		Long creditCardId
+		CardTransactionMode cardTransactionMode,
+
+		@Size(max = 500)
+		String notes
 
 ) {
 }

@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0022-drop-legacy-credit-card-owner-columns
+      author: backend-financeiro
+      comment: >
+        credit_cards is no longer a user-facing registration -- name/user/active now live solely
+        on transaction_methods (see TransactionMethod). Drops user_id, name and active, and,
+        transitively, fk_credit_cards_user, uk_credit_cards_user_name and idx_credit_cards_user.
+        credit_cards keeps only id/closing_day/due_day, reachable exclusively through the
+        transaction_methods.credit_card_id 1:1 link.
+      changes:
+        - dropColumn:
+            tableName: credit_cards
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: name
+              - column:
+                  name: active

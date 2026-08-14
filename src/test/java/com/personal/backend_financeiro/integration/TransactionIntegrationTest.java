@@ -10,6 +10,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class TransactionIntegrationTest extends AbstractApiIntegrationTest {
 
+	private final java.util.Map<String, Long> pixMethodByToken = new java.util.HashMap<>();
+
 	@Test
 	void filter_byTypeExpense_returnsOnlyExpenses() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
@@ -248,11 +250,21 @@ class TransactionIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"%s","amount":%s,
-								"expenseDate":"%s","paymentMethod":"PIX","notes":null}"""
-								.formatted(categoryId, description, amount, date)))
+								"expenseDate":"%s","transactionMethodId":%d,"cardTransactionMode":null,"notes":null}"""
+								.formatted(categoryId, description, amount, date, pixMethod(token))))
 				.andExpect(status().isCreated())
 				.andReturn();
 		return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
+	}
+
+	private long pixMethod(String token) throws Exception {
+		Long existing = pixMethodByToken.get(token);
+		if (existing != null) {
+			return existing;
+		}
+		long id = createTransactionMethod(token, "Pix", "PIX");
+		pixMethodByToken.put(token, id);
+		return id;
 	}
 
 	private long createIncome(String token, long categoryId, String description, String amount, String date) throws Exception {

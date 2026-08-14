@@ -76,6 +76,15 @@ public class IncomeService {
 			rule.setAmount(request.amount());
 			rule.setReceiptMethod(request.receiptMethod());
 			rule.setNotes(request.notes());
+
+			for (Income future : incomeRepository.findByRecurringIncomeIdAndIncomeDateGreaterThanEqual(
+					rule.getId(), income.getIncomeDate().plusDays(1))) {
+				future.setCategory(category);
+				future.setDescription(request.description());
+				future.setAmount(request.amount());
+				future.setReceiptMethod(request.receiptMethod());
+				future.setNotes(request.notes());
+			}
 		}
 
 		return incomeMapper.toResponse(income);
@@ -86,7 +95,10 @@ public class IncomeService {
 		Income income = findOwnedIncome(userId, incomeId);
 
 		if (scope == RecurringUpdateScope.THIS_AND_FUTURE && income.getRecurringIncome() != null) {
-			income.getRecurringIncome().setStatus(RecurrenceStatus.ENDED);
+			RecurringIncome rule = income.getRecurringIncome();
+			rule.setStatus(RecurrenceStatus.ENDED);
+			incomeRepository.deleteAll(incomeRepository.findByRecurringIncomeIdAndIncomeDateGreaterThanEqual(
+					rule.getId(), income.getIncomeDate().plusDays(1)));
 		}
 
 		incomeRepository.delete(income);

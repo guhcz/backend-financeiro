@@ -1,0 +1,88 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0018-backfill-transaction-methods-from-credit-cards
+      author: backend-financeiro
+      comment: >
+        Every existing credit card becomes its own CARD transaction method, 1:1, preserving name
+        and active state -- this is the only place a TransactionMethod is created without going
+        through the new registration endpoint.
+      changes:
+        - sql:
+            sql: >
+              INSERT INTO transaction_methods (user_id, name, type, active, credit_card_id, created_at, updated_at)
+              SELECT user_id, name, 'CARD', active, id, created_at, updated_at
+              FROM credit_cards;
+
+  - changeSet:
+      id: 0018-relax-credit-card-day-columns
+      author: backend-financeiro
+      comment: >
+        closing_day/due_day become optional: the legacy DEBIT_CARD fallback card created below
+        has no known closing/due day (see credit_cards-check-closing-day / -due-day, which still
+        apply and simply pass on NULL).
+      changes:
+        - dropNotNullConstraint:
+            tableName: credit_cards
+            columnName: closing_day
+            columnDataType: INTEGER
+        - dropNotNullConstraint:
+            tableName: credit_cards
+            columnName: due_day
+            columnDataType: INTEGER
+
+  - changeSet:
+      id: 0018-backfill-legacy-debit-fallback-cards
+      author: backend-financeiro
+      comment: >
+        Old DEBIT_CARD expenses never linked a credit_card (see ExpenseService.resolveCreditCard
+        pre-refactor: only CREDIT_CARD ever set it), so there is no real card to preserve for
+        them. Per the migration strategy, we do not invent a card name (e.g. "Nubank") -- we
+        create one neutral "legacy debit" fallback card per affected user instead.
+      changes:
+        - sql:
+            sql: >
+              INSERT INTO credit_cards (user_id, name, closing_day, due_day, active, created_at, updated_at)
+              SELECT DISTINCT user_id, 'Cartão de débito (legado)', NULL::INTEGER, NULL::INTEGER, true, now(), now()
+              FROM (
+                SELECT user_id FROM expenses WHERE payment_method = 'DEBIT_CARD'
+                UNION
+                SELECT user_id FROM recurring_expenses WHERE payment_method = 'DEBIT_CARD'
+              ) legacy_debit_users;
+
+  - changeSet:
+      id: 0018-backfill-legacy-debit-fallback-transaction-methods
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: >
+              INSERT INTO transaction_methods (user_id, name, type, active, credit_card_id, created_at, updated_at)
+              SELECT user_id, name, 'CARD', active, id, created_at, updated_at
+              FROM credit_cards
+              WHERE name = 'Cartão de débito (legado)';
+
+  - changeSet:
+      id: 0018-backfill-non-card-transaction-methods
+      author: backend-financeiro
+      comment: >
+        One PIX/CASH/BANK_TRANSFER/BOLETO/OTHER transaction method per user per legacy enum
+        value actually used in their expenses/recurring expenses. Old enum names match the new
+        TransactionMethodType names exactly for these five values.
+      changes:
+        - sql:
+            sql: >
+              INSERT INTO transaction_methods (user_id, name, type, active, created_at, updated_at)
+              SELECT DISTINCT user_id,
+                CASE payment_method
+                  WHEN 'PIX' THEN 'Pix'
+                  WHEN 'CASH' THEN 'Dinheiro'
+                  WHEN 'BANK_TRANSFER' THEN 'Transferência'
+                  WHEN 'BOLETO' THEN 'Boleto'
+                  WHEN 'OTHER' THEN 'Outro'
+                END,
+                payment_method,
+                true, now(), now()
+              FROM (
+                SELECT user_id, payment_method FROM expenses WHERE payment_method NOT IN ('CREDIT_CARD', 'DEBIT_CARD')
+                UNION
+                SELECT user_id, payment_method FROM recurring_expenses WHERE payment_method NOT IN ('CREDIT_CARD', 'DEBIT_CARD')
+              ) legacy_non_card_methods;

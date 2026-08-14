@@ -1,6 +1,6 @@
 package com.personal.backend_financeiro.entity;
 
-import com.personal.backend_financeiro.enums.PaymentMethod;
+import com.personal.backend_financeiro.enums.CardTransactionMode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -55,9 +55,17 @@ public class Expense extends Auditable {
 	@Column(name = "expense_date", nullable = false)
 	private LocalDate expenseDate;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "transaction_method_id", nullable = false)
+	private TransactionMethod transactionMethod;
+
+	/**
+	 * Only meaningful when transactionMethod.type == CARD (required in that case, null
+	 * otherwise) -- see CompetenceResolver.validateCardTransactionMode.
+	 */
 	@Enumerated(EnumType.STRING)
-	@Column(name = "payment_method", nullable = false, length = 20)
-	private PaymentMethod paymentMethod;
+	@Column(name = "card_transaction_mode", length = 10)
+	private CardTransactionMode cardTransactionMode;
 
 	@Column(length = 500)
 	private String notes;
@@ -80,15 +88,10 @@ public class Expense extends Auditable {
 	@Column(name = "recurrence_reference_month")
 	private Integer recurrenceReferenceMonth;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "credit_card_id")
-	private CreditCard creditCard;
-
 	/**
 	 * Financial competence: the month/year this expense actually impacts plannings, the monthly
-	 * limit and reports. Always the month after {@link #expenseDate}, regardless of payment
-	 * method (see {@link com.personal.backend_financeiro.util.CompetenceResolver}). Always
-	 * server-computed, never trusted from client input.
+	 * limit and reports (see {@link com.personal.backend_financeiro.util.CompetenceResolver}).
+	 * Always server-computed, never trusted from client input.
 	 */
 	@Column(name = "billing_month", nullable = false)
 	private Integer billingMonth;

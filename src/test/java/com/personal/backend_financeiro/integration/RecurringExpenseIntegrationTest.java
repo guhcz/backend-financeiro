@@ -1,6 +1,7 @@
 package com.personal.backend_financeiro.integration;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.TestPropertySource;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -14,7 +15,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Pins lookahead-months to 0 instead of the production default (12) so every test below keeps
+ * exercising "generates this month's occurrence immediately," undisturbed by the lookahead
+ * feature — see {@link RecurringExpenseLookaheadIntegrationTest} for coverage of generating
+ * several months ahead.
+ */
+@TestPropertySource(properties = "app.recurring-expense.lookahead-months=0")
 class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
+
+	private final java.util.Map<String, Long> pixMethodByToken = new java.util.HashMap<>();
 
 	@Test
 	void create_generatesFirstOccurrenceImmediately_whenStartDateIsTodayOrEarlier() throws Exception {
@@ -25,7 +35,7 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 		mockMvc.perform(post("/api/v1/recurring-expenses")
 						.header("Authorization", "Bearer " + token)
 						.contentType(APPLICATION_JSON)
-						.content(recurringExpenseBody(categoryId, "Internet", 10, today, null)))
+						.content(recurringExpenseBody(token, categoryId, "Internet", 10, today, null)))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.active").value(true));
 
@@ -48,7 +58,7 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 		mockMvc.perform(post("/api/v1/recurring-expenses")
 						.header("Authorization", "Bearer " + token)
 						.contentType(APPLICATION_JSON)
-						.content(recurringExpenseBody(categoryId, "Gym", 10, futureStart, null)))
+						.content(recurringExpenseBody(token, categoryId, "Gym", 10, futureStart, null)))
 				.andExpect(status().isCreated());
 
 		mockMvc.perform(get("/api/v1/expenses")
@@ -68,7 +78,7 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 		mockMvc.perform(post("/api/v1/recurring-expenses")
 						.header("Authorization", "Bearer " + token)
 						.contentType(APPLICATION_JSON)
-						.content(recurringExpenseBody(categoryId, "Rent", 31, today, null)))
+						.content(recurringExpenseBody(token, categoryId, "Rent", 31, today, null)))
 				.andExpect(status().isCreated());
 
 		mockMvc.perform(get("/api/v1/expenses")
@@ -87,7 +97,7 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 		mockMvc.perform(post("/api/v1/recurring-expenses")
 						.header("Authorization", "Bearer " + tokenBob)
 						.contentType(APPLICATION_JSON)
-						.content(recurringExpenseBody(categoryId, "Internet", 10, LocalDate.now(), null)))
+						.content(recurringExpenseBody(tokenBob, categoryId, "Internet", 10, LocalDate.now(), null)))
 				.andExpect(status().isNotFound());
 	}
 
@@ -101,9 +111,9 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"Internet","amount":119.90,
-								"paymentMethod":"PIX","notes":null,"frequency":"WEEKLY",
+								"transactionMethodId":%d,"cardTransactionMode":null,"notes":null,"frequency":"WEEKLY",
 								"dueDay":10,"startDate":"%s","endDate":null}"""
-								.formatted(categoryId, LocalDate.now())))
+								.formatted(categoryId, pixMethod(token), LocalDate.now())))
 				.andExpect(status().isBadRequest());
 	}
 
@@ -116,7 +126,7 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 		mockMvc.perform(post("/api/v1/recurring-expenses")
 						.header("Authorization", "Bearer " + token)
 						.contentType(APPLICATION_JSON)
-						.content(recurringExpenseBody(categoryId, "Internet", 10, today, today.minusDays(1))))
+						.content(recurringExpenseBody(token, categoryId, "Internet", 10, today, today.minusDays(1))))
 				.andExpect(status().isBadRequest());
 	}
 
@@ -128,7 +138,7 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 		mockMvc.perform(post("/api/v1/recurring-expenses")
 						.header("Authorization", "Bearer " + token)
 						.contentType(APPLICATION_JSON)
-						.content(recurringExpenseBody(categoryId, "Internet", 32, LocalDate.now(), null)))
+						.content(recurringExpenseBody(token, categoryId, "Internet", 32, LocalDate.now(), null)))
 				.andExpect(status().isBadRequest());
 	}
 
@@ -142,7 +152,7 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 		mockMvc.perform(post("/api/v1/recurring-expenses")
 						.header("Authorization", "Bearer " + token)
 						.contentType(APPLICATION_JSON)
-						.content(recurringExpenseBody(categoryId, "Reserva mensal", null, today, null)))
+						.content(recurringExpenseBody(token, categoryId, "Reserva mensal", null, today, null)))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.dueDay").doesNotExist());
 
@@ -199,8 +209,8 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"Internet","amount":150.00,
-								"paymentMethod":"PIX","notes":null,"dueDay":20,"endDate":null}"""
-								.formatted(categoryId)))
+								"transactionMethodId":%d,"cardTransactionMode":null,"notes":null,"dueDay":20,"endDate":null}"""
+								.formatted(categoryId, pixMethod(token))))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.dueDay").value(20))
 				.andExpect(jsonPath("$.amount").value(150.00));
@@ -293,8 +303,8 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"Internet","amount":150.00,
-								"paymentMethod":"PIX","notes":null,"dueDay":20,"endDate":null}"""
-								.formatted(categoryId)))
+								"transactionMethodId":%d,"cardTransactionMode":null,"notes":null,"dueDay":20,"endDate":null}"""
+								.formatted(categoryId, pixMethod(token))))
 				.andExpect(status().isBadRequest());
 	}
 
@@ -313,19 +323,29 @@ class RecurringExpenseIntegrationTest extends AbstractApiIntegrationTest {
 		var result = mockMvc.perform(post("/api/v1/recurring-expenses")
 						.header("Authorization", "Bearer " + token)
 						.contentType(APPLICATION_JSON)
-						.content(recurringExpenseBody(categoryId, description, dueDay, startDate, endDate)))
+						.content(recurringExpenseBody(token, categoryId, description, dueDay, startDate, endDate)))
 				.andExpect(status().isCreated())
 				.andReturn();
 		return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
 	}
 
-	private String recurringExpenseBody(long categoryId, String description, Integer dueDay, LocalDate startDate, LocalDate endDate) {
+	private String recurringExpenseBody(String token, long categoryId, String description, Integer dueDay, LocalDate startDate, LocalDate endDate) throws Exception {
 		return """
 				{"categoryId":%d,"description":"%s","amount":119.90,
-				"paymentMethod":"PIX","notes":null,"frequency":"MONTHLY",
+				"transactionMethodId":%d,"cardTransactionMode":null,"notes":null,"frequency":"MONTHLY",
 				"dueDay":%s,"startDate":"%s","endDate":%s}"""
-				.formatted(categoryId, description, dueDay == null ? "null" : dueDay, startDate,
+				.formatted(categoryId, description, pixMethod(token), dueDay == null ? "null" : dueDay, startDate,
 						endDate == null ? "null" : "\"" + endDate + "\"");
+	}
+
+	private long pixMethod(String token) throws Exception {
+		Long existing = pixMethodByToken.get(token);
+		if (existing != null) {
+			return existing;
+		}
+		long id = createTransactionMethod(token, "Pix", "PIX");
+		pixMethodByToken.put(token, id);
+		return id;
 	}
 
 }

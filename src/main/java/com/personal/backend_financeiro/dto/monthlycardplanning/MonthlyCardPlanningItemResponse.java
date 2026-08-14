@@ -1,13 +1,13 @@
 package com.personal.backend_financeiro.dto.monthlycardplanning;
 
-import com.personal.backend_financeiro.dto.creditcard.CreditCardResponse;
+import com.personal.backend_financeiro.dto.transactionmethod.TransactionMethodResponse;
 
 import java.math.BigDecimal;
 
 public record MonthlyCardPlanningItemResponse(
 
 		Long id,
-		CreditCardResponse creditCard,
+		TransactionMethodResponse transactionMethod,
 		BigDecimal plannedAmount,
 		BigDecimal spentAmount,
 		BigDecimal remainingAmount,

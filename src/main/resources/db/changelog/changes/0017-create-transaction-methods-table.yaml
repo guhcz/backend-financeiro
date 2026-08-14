@@ -1,0 +1,112 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0017-create-transaction-methods-table
+      author: backend-financeiro
+      changes:
+        - createTable:
+            tableName: transaction_methods
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_transaction_methods
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: credit_card_id
+                  type: BIGINT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: VARCHAR(180)
+              - column:
+                  name: updated_by
+                  type: VARCHAR(180)
+
+  - changeSet:
+      id: 0017-create-transaction-methods-table-fk-user
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: transaction_methods
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_transaction_methods_user
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0017-create-transaction-methods-table-fk-credit-card
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: transaction_methods
+            baseColumnNames: credit_card_id
+            referencedTableName: credit_cards
+            referencedColumnNames: id
+            constraintName: fk_transaction_methods_credit_card
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0017-create-transaction-methods-table-unique-credit-card
+      author: backend-financeiro
+      comment: >
+        A CreditCard detail row can back at most one TransactionMethod, so it is impossible to
+        register the same card twice as two different payment methods.
+      changes:
+        - addUniqueConstraint:
+            tableName: transaction_methods
+            columnNames: credit_card_id
+            constraintName: uk_transaction_methods_credit_card
+
+  - changeSet:
+      id: 0017-create-transaction-methods-table-unique-user-name
+      author: backend-financeiro
+      changes:
+        - addUniqueConstraint:
+            tableName: transaction_methods
+            columnNames: user_id, name
+            constraintName: uk_transaction_methods_user_name
+
+  - changeSet:
+      id: 0017-create-transaction-methods-table-index-user
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: transaction_methods
+            indexName: idx_transaction_methods_user
+            columns:
+              - column:
+                  name: user_id

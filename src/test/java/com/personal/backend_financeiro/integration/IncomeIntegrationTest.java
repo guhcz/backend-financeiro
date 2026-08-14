@@ -1,6 +1,7 @@
 package com.personal.backend_financeiro.integration;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.TestPropertySource;
 
 import java.time.LocalDate;
 
@@ -12,6 +13,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Pins lookahead-months to 0 instead of the production default (12) so createRecurringIncome
+ * below keeps generating exactly one occurrence, matching every "the only generated income"
+ * assumption in these tests.
+ */
+@TestPropertySource(properties = "app.recurring-income.lookahead-months=0")
 class IncomeIntegrationTest extends AbstractApiIntegrationTest {
 
 	@Test

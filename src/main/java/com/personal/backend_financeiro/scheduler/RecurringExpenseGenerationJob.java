@@ -22,7 +22,8 @@ public class RecurringExpenseGenerationJob {
 	@Scheduled(cron = "${app.recurring-expense.generation-cron:0 0 1 * * *}")
 	public void run() {
 		LocalDate today = LocalDate.now();
-		for (Long ruleId : recurringExpenseRepository.findEligibleRuleIds(today)) {
+		LocalDate horizonEnd = generationService.horizonEnd(today);
+		for (Long ruleId : recurringExpenseRepository.findEligibleRuleIds(horizonEnd)) {
 			try {
 				generationService.generateForRule(ruleId, today);
 			} catch (Exception e) {

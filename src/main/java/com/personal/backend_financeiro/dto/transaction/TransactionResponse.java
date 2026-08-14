@@ -17,8 +17,8 @@ public record TransactionResponse(
 		String description,
 		BigDecimal amount,
 		LocalDate date,
-		@Schema(description = "Forma de pagamento (despesa) ou de recebimento (receita), como texto solto — " +
-				"os dois domínios usam enums diferentes (PaymentMethod / ReceiptMethod).")
+		@Schema(description = "Nome da forma de pagamento (despesa, ex.: \"Nubank\", \"Pix\") ou de recebimento " +
+				"(receita), como texto solto — os dois domínios usam modelos diferentes (TransactionMethod / ReceiptMethod).")
 		String method,
 		boolean recurring,
 		boolean generatedAutomatically,

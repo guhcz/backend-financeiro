@@ -80,8 +80,8 @@ class CategoryIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"Lunch","amount":25.50,
-								"expenseDate":"2026-07-10","paymentMethod":"PIX","notes":null}"""
-								.formatted(categoryId)))
+								"expenseDate":"2026-07-10","transactionMethodId":%d,"cardTransactionMode":null,"notes":null}"""
+								.formatted(categoryId, createTransactionMethod(token, "Pix", "PIX"))))
 				.andExpect(status().isCreated());
 
 		mockMvc.perform(delete("/api/v1/categories/" + categoryId)

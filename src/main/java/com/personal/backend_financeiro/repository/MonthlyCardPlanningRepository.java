@@ -14,12 +14,12 @@ public interface MonthlyCardPlanningRepository extends JpaRepository<MonthlyCard
 
 	Optional<MonthlyCardPlanning> findByIdAndUserId(Long id, Long userId);
 
-	Optional<MonthlyCardPlanning> findByUserIdAndCreditCardIdAndMonthAndYear(
-			Long userId, Long creditCardId, Integer month, Integer year);
+	Optional<MonthlyCardPlanning> findByUserIdAndTransactionMethodIdAndMonthAndYear(
+			Long userId, Long transactionMethodId, Integer month, Integer year);
 
 	Page<MonthlyCardPlanning> findByUserIdAndMonthAndYear(Long userId, Integer month, Integer year, Pageable pageable);
 
-	boolean existsByCreditCardId(Long creditCardId);
+	boolean existsByTransactionMethodId(Long transactionMethodId);
 
 	@Query("""
 			SELECT COALESCE(SUM(p.amount), 0) FROM MonthlyCardPlanning p

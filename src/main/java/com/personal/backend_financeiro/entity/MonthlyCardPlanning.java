@@ -39,8 +39,8 @@ public class MonthlyCardPlanning extends Auditable {
 	private User user;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "credit_card_id", nullable = false)
-	private CreditCard creditCard;
+	@JoinColumn(name = "transaction_method_id", nullable = false)
+	private TransactionMethod transactionMethod;
 
 	@Column(nullable = false)
 	private Integer month;

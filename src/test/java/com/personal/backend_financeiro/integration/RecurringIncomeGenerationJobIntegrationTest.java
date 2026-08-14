@@ -20,9 +20,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Overrides app.recurring-income.scheduler-enabled=true just for this class so the
  * {@link RecurringIncomeGenerationJob} bean exists (it's conditional and disabled by default in
  * application-test.properties). The job's run() method is invoked directly rather than waiting
- * on the real cron trigger.
+ * on the real cron trigger. Also pins lookahead-months to a small, easy-to-count value instead
+ * of the production default (12).
  */
-@TestPropertySource(properties = "app.recurring-income.scheduler-enabled=true")
+@TestPropertySource(properties = {
+		"app.recurring-income.scheduler-enabled=true",
+		"app.recurring-income.lookahead-months=2"
+})
 class RecurringIncomeGenerationJobIntegrationTest extends AbstractApiIntegrationTest {
 
 	@Autowired
@@ -35,19 +39,36 @@ class RecurringIncomeGenerationJobIntegrationTest extends AbstractApiIntegration
 	private IncomeRepository incomeRepository;
 
 	@Test
-	void run_generatesOccurrence_andAdvancesNextGenerationDate_forEligibleRule() throws Exception {
+	void create_generatesOccurrencesUpToLookaheadHorizon_immediately() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long categoryId = createCategory(token, "Trabalho");
-		long ruleId = createRecurringIncome(token, categoryId, "Salário", 5, LocalDate.now().plusMonths(6));
+		long incomesBefore = incomeRepository.count();
+		int receiptDay = Math.min(LocalDate.now().getDayOfMonth(), 28);
 
+		long ruleId = createRecurringIncome(token, categoryId, "Salário", receiptDay, LocalDate.now());
+
+		// lookahead-months=2 means "this occurrence + 2 more months ahead" = 3, generated
+		// synchronously at creation time, with no need for the daily job to ever run.
+		assertThat(incomeRepository.count()).isEqualTo(incomesBefore + 3);
+		RecurringIncome rule = recurringIncomeRepository.findById(ruleId).orElseThrow();
+		assertThat(rule.getNextGenerationDate()).isAfter(LocalDate.now().plusMonths(2));
+	}
+
+	@Test
+	void run_catchesUpEveryOccurrence_upToLookaheadHorizon_inOneRun() throws Exception {
+		String token = registerAndLogin("Alice", "alice@example.com", "password123");
+		long categoryId = createCategory(token, "Trabalho");
+		// startDate beyond the 2-month horizon so creation itself generates nothing yet.
+		long ruleId = createRecurringIncome(token, categoryId, "Salário", 5, LocalDate.now().plusMonths(6));
 		makeRuleDueToday(ruleId);
 		long incomesBefore = incomeRepository.count();
 
 		job.run();
 
-		assertThat(incomeRepository.count()).isEqualTo(incomesBefore + 1);
+		// Catches up today's occurrence plus every month within the horizon in this single run.
+		assertThat(incomeRepository.count()).isEqualTo(incomesBefore + 3);
 		RecurringIncome rule = recurringIncomeRepository.findById(ruleId).orElseThrow();
-		assertThat(rule.getNextGenerationDate()).isAfter(LocalDate.now());
+		assertThat(rule.getNextGenerationDate()).isAfter(LocalDate.now().plusMonths(2));
 	}
 
 	@Test
@@ -68,7 +89,7 @@ class RecurringIncomeGenerationJobIntegrationTest extends AbstractApiIntegration
 	}
 
 	@Test
-	void run_doesNotDuplicate_whenExecutedTwiceForTheSameDueOccurrence() throws Exception {
+	void run_doesNotGenerateFurther_onceCaughtUpToHorizon() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long categoryId = createCategory(token, "Trabalho");
 		long ruleId = createRecurringIncome(token, categoryId, "Salário", 5, LocalDate.now().plusMonths(6));
@@ -82,7 +103,7 @@ class RecurringIncomeGenerationJobIntegrationTest extends AbstractApiIntegration
 	}
 
 	@Test
-	void run_generatesOccurrence_whenReceiptDayIsNull() throws Exception {
+	void run_generatesOccurrences_whenReceiptDayIsNull() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long categoryId = createCategory(token, "Trabalho");
 		long ruleId = createRecurringIncomeWithNullReceiptDay(token, categoryId, "Renda variável", LocalDate.now().plusMonths(6));
@@ -91,7 +112,7 @@ class RecurringIncomeGenerationJobIntegrationTest extends AbstractApiIntegration
 		long incomesBefore = incomeRepository.count();
 		job.run();
 
-		assertThat(incomeRepository.count()).isEqualTo(incomesBefore + 1);
+		assertThat(incomeRepository.count()).isEqualTo(incomesBefore + 3);
 	}
 
 	private void makeRuleDueToday(long ruleId) {

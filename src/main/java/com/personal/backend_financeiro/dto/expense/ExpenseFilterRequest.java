@@ -1,7 +1,5 @@
 package com.personal.backend_financeiro.dto.expense;
 
-import com.personal.backend_financeiro.enums.PaymentMethod;
-
 import java.time.LocalDate;
 
 /**
@@ -10,7 +8,7 @@ import java.time.LocalDate;
 public record ExpenseFilterRequest(
 
 		Long categoryId,
-		PaymentMethod paymentMethod,
+		Long transactionMethodId,
 		LocalDate startDate,
 		LocalDate endDate,
 		String description,

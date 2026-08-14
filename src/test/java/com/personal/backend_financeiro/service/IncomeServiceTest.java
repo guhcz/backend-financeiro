@@ -97,6 +97,7 @@ class IncomeServiceTest {
 		RecurringIncome rule = new RecurringIncome();
 		rule.setDescription("Old description");
 		Income income = new Income();
+		income.setIncomeDate(LocalDate.of(2026, 8, 5));
 		income.setRecurringIncome(rule);
 		Category category = new Category();
 		when(incomeRepository.findByIdAndUserId(3L, 1L)).thenReturn(Optional.of(income));
@@ -106,6 +107,26 @@ class IncomeServiceTest {
 
 		assertThat(rule.getDescription()).isEqualTo("Salário");
 		assertThat(rule.getCategory()).isEqualTo(category);
+	}
+
+	@Test
+	void update_appliesNewValuesToAlreadyGeneratedFutureIncomes_whenScopeIsThisAndFuture() {
+		RecurringIncome rule = new RecurringIncome();
+		Income income = new Income();
+		income.setIncomeDate(LocalDate.of(2026, 8, 5));
+		income.setRecurringIncome(rule);
+		Category category = new Category();
+		Income future = Income.builder().description("Old").amount(new BigDecimal("1.00")).receiptMethod(ReceiptMethod.BANK_TRANSFER).build();
+		when(incomeRepository.findByIdAndUserId(3L, 1L)).thenReturn(Optional.of(income));
+		when(categoryRepository.findByIdAndUserId(9L, 1L)).thenReturn(Optional.of(category));
+		when(incomeRepository.findByRecurringIncomeIdAndIncomeDateGreaterThanEqual(any(), any()))
+				.thenReturn(java.util.List.of(future));
+
+		incomeService.update(1L, 3L, sampleRequest(9L), RecurringUpdateScope.THIS_AND_FUTURE);
+
+		assertThat(future.getDescription()).isEqualTo("Salário");
+		assertThat(future.getAmount()).isEqualByComparingTo("6200.00");
+		assertThat(future.getCategory()).isEqualTo(category);
 	}
 
 	@Test
@@ -135,6 +156,7 @@ class IncomeServiceTest {
 		RecurringIncome rule = new RecurringIncome();
 		rule.setStatus(RecurrenceStatus.ACTIVE);
 		Income income = new Income();
+		income.setIncomeDate(LocalDate.of(2026, 8, 5));
 		income.setRecurringIncome(rule);
 		when(incomeRepository.findByIdAndUserId(3L, 1L)).thenReturn(Optional.of(income));
 
@@ -142,6 +164,22 @@ class IncomeServiceTest {
 
 		assertThat(rule.getStatus()).isEqualTo(RecurrenceStatus.ENDED);
 		verify(incomeRepository).delete(income);
+	}
+
+	@Test
+	void delete_removesAlreadyGeneratedFutureIncomes_whenScopeIsThisAndFuture() {
+		RecurringIncome rule = new RecurringIncome();
+		rule.setStatus(RecurrenceStatus.ACTIVE);
+		Income income = new Income();
+		income.setIncomeDate(LocalDate.of(2026, 8, 5));
+		income.setRecurringIncome(rule);
+		when(incomeRepository.findByIdAndUserId(3L, 1L)).thenReturn(Optional.of(income));
+		java.util.List<Income> future = java.util.List.of(Income.builder().build());
+		when(incomeRepository.findByRecurringIncomeIdAndIncomeDateGreaterThanEqual(any(), any())).thenReturn(future);
+
+		incomeService.delete(1L, 3L, RecurringUpdateScope.THIS_AND_FUTURE);
+
+		verify(incomeRepository).deleteAll(future);
 	}
 
 	@Test

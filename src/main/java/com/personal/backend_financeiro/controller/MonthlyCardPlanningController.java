@@ -74,7 +74,7 @@ public class MonthlyCardPlanningController {
 	public Page<MonthlyCardPlanningItemResponse> list(
 			@Parameter(description = "Mês (1-12), obrigatório") @RequestParam Integer month,
 			@Parameter(description = "Ano (>= 2000), obrigatório") @RequestParam Integer year,
-			@Parameter(description = "Paginação padrão do Spring: page, size, sort (ex.: sort=creditCard.name,asc)") Pageable pageable) {
+			@Parameter(description = "Paginação padrão do Spring: page, size, sort (ex.: sort=transactionMethod.name,asc)") Pageable pageable) {
 		return monthlyCardPlanningService.list(currentUserProvider.getCurrentUserId(), month, year, pageable);
 	}
 

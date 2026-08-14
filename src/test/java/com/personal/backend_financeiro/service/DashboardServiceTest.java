@@ -8,10 +8,10 @@ import com.personal.backend_financeiro.entity.Category;
 import com.personal.backend_financeiro.entity.Expense;
 import com.personal.backend_financeiro.entity.RecurringExpense;
 import com.personal.backend_financeiro.enums.FinancialStatusType;
-import com.personal.backend_financeiro.enums.PaymentMethod;
 import com.personal.backend_financeiro.enums.RecurrenceStatus;
 import com.personal.backend_financeiro.exception.InvalidRequestException;
 import com.personal.backend_financeiro.mapper.CategoryMapper;
+import com.personal.backend_financeiro.mapper.TransactionMethodMapper;
 import com.personal.backend_financeiro.repository.ExpenseRepository;
 import com.personal.backend_financeiro.repository.IncomeRepository;
 import com.personal.backend_financeiro.repository.RecurringExpenseRepository;
@@ -51,6 +51,8 @@ class DashboardServiceTest {
 	private RecurringExpenseRepository recurringExpenseRepository;
 	@Mock
 	private CategoryMapper categoryMapper;
+	@Mock
+	private TransactionMethodMapper transactionMethodMapper;
 
 	@InjectMocks
 	private DashboardService dashboardService;
@@ -62,8 +64,8 @@ class DashboardServiceTest {
 		lenient().when(expenseRepository.sumAmountByUserAndPeriod(anyLong(), any(), any())).thenReturn(BigDecimal.ZERO);
 		lenient().when(incomeRepository.sumAmountByUserAndPeriod(anyLong(), any(), any())).thenReturn(BigDecimal.ZERO);
 		lenient().when(recurringExpenseRepository.countByUserIdAndStatus(anyLong(), eq(RecurrenceStatus.ACTIVE))).thenReturn(0L);
-		lenient().when(recurringExpenseRepository.countDueBetween(anyLong(), any(), any())).thenReturn(0L);
-		lenient().when(recurringExpenseRepository.sumAmountDueOn(anyLong(), any())).thenReturn(BigDecimal.ZERO);
+		lenient().when(expenseRepository.countRecurringDueBetween(anyLong(), any(), any())).thenReturn(0L);
+		lenient().when(expenseRepository.sumRecurringAmountDueOn(anyLong(), any())).thenReturn(BigDecimal.ZERO);
 		lenient().when(planningService.expensesByCategory(anyLong(), anyInt(), anyInt())).thenReturn(List.of());
 	}
 
@@ -182,7 +184,6 @@ class DashboardServiceTest {
 				.description("Restaurante")
 				.amount(new BigDecimal("42.90"))
 				.expenseDate(LocalDate.of(2026, 8, 10))
-				.paymentMethod(PaymentMethod.PIX)
 				.category(category)
 				.build();
 		Expense recurringGeneratedExpense = Expense.builder()
@@ -190,7 +191,6 @@ class DashboardServiceTest {
 				.description("Internet")
 				.amount(new BigDecimal("119.90"))
 				.expenseDate(LocalDate.of(2026, 8, 5))
-				.paymentMethod(PaymentMethod.CREDIT_CARD)
 				.category(category)
 				.recurringExpense(new RecurringExpense())
 				.build();
@@ -232,8 +232,8 @@ class DashboardServiceTest {
 	void recurringSummary_passesThroughRepositoryCounts() {
 		when(planningService.summary(USER_ID, 8, 2026)).thenReturn(summary(null, BigDecimal.ZERO, null, null));
 		when(recurringExpenseRepository.countByUserIdAndStatus(USER_ID, RecurrenceStatus.ACTIVE)).thenReturn(8L);
-		when(recurringExpenseRepository.countDueBetween(eq(USER_ID), any(), any())).thenReturn(3L);
-		when(recurringExpenseRepository.sumAmountDueOn(eq(USER_ID), any())).thenReturn(new BigDecimal("228.50"));
+		when(expenseRepository.countRecurringDueBetween(eq(USER_ID), any(), any())).thenReturn(3L);
+		when(expenseRepository.sumRecurringAmountDueOn(eq(USER_ID), any())).thenReturn(new BigDecimal("228.50"));
 
 		DashboardResponse result = dashboardService.getDashboard(USER_ID, 8, 2026);
 

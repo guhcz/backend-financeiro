@@ -12,6 +12,7 @@ import com.personal.backend_financeiro.entity.Expense;
 import com.personal.backend_financeiro.enums.FinancialStatusType;
 import com.personal.backend_financeiro.enums.RecurrenceStatus;
 import com.personal.backend_financeiro.mapper.CategoryMapper;
+import com.personal.backend_financeiro.mapper.TransactionMethodMapper;
 import com.personal.backend_financeiro.repository.ExpenseRepository;
 import com.personal.backend_financeiro.repository.IncomeRepository;
 import com.personal.backend_financeiro.repository.RecurringExpenseRepository;
@@ -44,6 +45,7 @@ public class DashboardService {
 	private final IncomeRepository incomeRepository;
 	private final RecurringExpenseRepository recurringExpenseRepository;
 	private final CategoryMapper categoryMapper;
+	private final TransactionMethodMapper transactionMethodMapper;
 
 	public DashboardResponse getDashboard(Long userId, Integer month, Integer year) {
 		PlanningPeriodUtils.assertValid(month, year);
@@ -77,14 +79,13 @@ public class DashboardService {
 	}
 
 	/**
-	 * Incomes have no stored competence column (see CompetenceResolver: always the month after
-	 * the record's own date); to find the incomes whose competence is the requested month, query
-	 * the real date range of the previous month instead.
+	 * Incomes have no stored competence column and always count towards their own incomeDate's
+	 * month (see CompetenceResolver), so the requested month maps directly onto its real date
+	 * range.
 	 */
 	private BigDecimal totalIncome(Long userId, Integer month, Integer year) {
-		YearMonth incomePeriod = YearMonth.of(year, month).minusMonths(1);
-		LocalDate start = PlanningPeriodUtils.firstDayOf(incomePeriod.getYear(), incomePeriod.getMonthValue());
-		LocalDate end = PlanningPeriodUtils.lastDayOf(incomePeriod.getYear(), incomePeriod.getMonthValue());
+		LocalDate start = PlanningPeriodUtils.firstDayOf(year, month);
+		LocalDate end = PlanningPeriodUtils.lastDayOf(year, month);
 		return incomeRepository.sumAmountByUserAndPeriod(userId, start, end);
 	}
 
@@ -103,7 +104,7 @@ public class DashboardService {
 				expense.getDescription(),
 				expense.getAmount(),
 				expense.getExpenseDate(),
-				expense.getPaymentMethod(),
+				transactionMethodMapper.toResponse(expense.getTransactionMethod()),
 				expense.getRecurringExpense() != null,
 				categoryMapper.toResponse(expense.getCategory()));
 	}
@@ -125,8 +126,8 @@ public class DashboardService {
 		LocalDate today = LocalDate.now();
 
 		long activeCount = recurringExpenseRepository.countByUserIdAndStatus(userId, RecurrenceStatus.ACTIVE);
-		long dueInNext7DaysCount = recurringExpenseRepository.countDueBetween(userId, today, today.plusDays(DUE_SOON_DAYS));
-		BigDecimal dueTodayAmount = recurringExpenseRepository.sumAmountDueOn(userId, today);
+		long dueInNext7DaysCount = expenseRepository.countRecurringDueBetween(userId, today, today.plusDays(DUE_SOON_DAYS));
+		BigDecimal dueTodayAmount = expenseRepository.sumRecurringAmountDueOn(userId, today);
 
 		return new DashboardRecurringSummaryResponse(activeCount, dueInNext7DaysCount, dueTodayAmount);
 	}

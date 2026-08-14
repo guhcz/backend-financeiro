@@ -1,0 +1,109 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0019-add-transaction-method-columns-to-expenses
+      author: backend-financeiro
+      changes:
+        - addColumn:
+            tableName: expenses
+            columns:
+              - column:
+                  name: transaction_method_id
+                  type: BIGINT
+              - column:
+                  name: card_transaction_mode
+                  type: VARCHAR(10)
+
+  - changeSet:
+      id: 0019-backfill-expenses-transaction-method-credit
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: >
+              UPDATE expenses e
+              SET transaction_method_id = tm.id, card_transaction_mode = 'CREDIT'
+              FROM transaction_methods tm
+              WHERE e.payment_method = 'CREDIT_CARD' AND tm.credit_card_id = e.credit_card_id;
+
+  - changeSet:
+      id: 0019-backfill-expenses-transaction-method-debit
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: >
+              UPDATE expenses e
+              SET transaction_method_id = tm.id, card_transaction_mode = 'DEBIT'
+              FROM transaction_methods tm
+              WHERE e.payment_method = 'DEBIT_CARD'
+                AND tm.user_id = e.user_id AND tm.name = 'Cartão de débito (legado)';
+
+  - changeSet:
+      id: 0019-backfill-expenses-transaction-method-other
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: >
+              UPDATE expenses e
+              SET transaction_method_id = tm.id
+              FROM transaction_methods tm
+              WHERE e.payment_method NOT IN ('CREDIT_CARD', 'DEBIT_CARD')
+                AND tm.user_id = e.user_id AND tm.type = e.payment_method AND tm.credit_card_id IS NULL;
+
+  - changeSet:
+      id: 0019-expenses-transaction-method-not-null
+      author: backend-financeiro
+      changes:
+        - addNotNullConstraint:
+            tableName: expenses
+            columnName: transaction_method_id
+            columnDataType: BIGINT
+
+  - changeSet:
+      id: 0019-expenses-transaction-method-check-card-mode
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: >
+              ALTER TABLE expenses ADD CONSTRAINT ck_expenses_card_transaction_mode_valid
+              CHECK (card_transaction_mode IS NULL OR card_transaction_mode IN ('CREDIT', 'DEBIT'));
+      rollback:
+        - sql:
+            sql: ALTER TABLE expenses DROP CONSTRAINT ck_expenses_card_transaction_mode_valid;
+
+  - changeSet:
+      id: 0019-expenses-transaction-method-fk
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: expenses
+            baseColumnNames: transaction_method_id
+            referencedTableName: transaction_methods
+            referencedColumnNames: id
+            constraintName: fk_expenses_transaction_method
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0019-expenses-transaction-method-index
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: expenses
+            indexName: idx_expenses_transaction_method
+            columns:
+              - column:
+                  name: transaction_method_id
+
+  - changeSet:
+      id: 0019-drop-expenses-legacy-columns
+      author: backend-financeiro
+      comment: >
+        Drops payment_method and credit_card_id (and, transitively, fk_expenses_credit_card,
+        idx_expenses_credit_card) now that transaction_method_id/card_transaction_mode fully
+        replace them.
+      changes:
+        - dropColumn:
+            tableName: expenses
+            columns:
+              - column:
+                  name: payment_method
+              - column:
+                  name: credit_card_id

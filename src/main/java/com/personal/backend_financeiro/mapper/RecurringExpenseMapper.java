@@ -8,7 +8,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-@Mapper(componentModel = "spring", uses = { CategoryMapper.class, CreditCardMapper.class })
+@Mapper(componentModel = "spring", uses = { CategoryMapper.class, TransactionMethodMapper.class })
 public interface RecurringExpenseMapper {
 
 	@Mapping(target = "id", ignore = true)
@@ -16,7 +16,7 @@ public interface RecurringExpenseMapper {
 	@Mapping(target = "category", ignore = true)
 	@Mapping(target = "status", ignore = true)
 	@Mapping(target = "nextGenerationDate", ignore = true)
-	@Mapping(target = "creditCard", ignore = true)
+	@Mapping(target = "transactionMethod", ignore = true)
 	RecurringExpense toEntity(RecurringExpenseCreateRequest request);
 
 	@Mapping(target = "active", expression = "java(recurringExpense.getStatus() == com.personal.backend_financeiro.enums.RecurrenceStatus.ACTIVE)")
@@ -30,7 +30,7 @@ public interface RecurringExpenseMapper {
 	@Mapping(target = "startDate", ignore = true)
 	@Mapping(target = "frequency", ignore = true)
 	@Mapping(target = "nextGenerationDate", ignore = true)
-	@Mapping(target = "creditCard", ignore = true)
+	@Mapping(target = "transactionMethod", ignore = true)
 	void updateEntityFromRequest(RecurringExpenseUpdateRequest request, @MappingTarget RecurringExpense recurringExpense);
 
 }

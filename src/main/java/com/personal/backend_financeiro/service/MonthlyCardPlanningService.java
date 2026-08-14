@@ -3,16 +3,18 @@ package com.personal.backend_financeiro.service;
 import com.personal.backend_financeiro.dto.monthlycardplanning.MonthlyCardPlanningItemResponse;
 import com.personal.backend_financeiro.dto.monthlycardplanning.MonthlyCardPlanningRequest;
 import com.personal.backend_financeiro.dto.monthlycardplanning.MonthlyCardPlanningResponse;
-import com.personal.backend_financeiro.entity.CreditCard;
 import com.personal.backend_financeiro.entity.MonthlyCardPlanning;
+import com.personal.backend_financeiro.entity.TransactionMethod;
+import com.personal.backend_financeiro.enums.TransactionMethodType;
 import com.personal.backend_financeiro.exception.DuplicateResourceException;
+import com.personal.backend_financeiro.exception.InvalidRequestException;
 import com.personal.backend_financeiro.exception.ResourceNotFoundException;
-import com.personal.backend_financeiro.mapper.CreditCardMapper;
 import com.personal.backend_financeiro.mapper.MonthlyCardPlanningMapper;
-import com.personal.backend_financeiro.repository.CreditCardRepository;
-import com.personal.backend_financeiro.repository.CreditCardTotalProjection;
+import com.personal.backend_financeiro.mapper.TransactionMethodMapper;
 import com.personal.backend_financeiro.repository.ExpenseRepository;
 import com.personal.backend_financeiro.repository.MonthlyCardPlanningRepository;
+import com.personal.backend_financeiro.repository.TransactionMethodRepository;
+import com.personal.backend_financeiro.repository.TransactionMethodTotalProjection;
 import com.personal.backend_financeiro.repository.UserRepository;
 import com.personal.backend_financeiro.util.PlanningPeriodUtils;
 import lombok.RequiredArgsConstructor;
@@ -32,20 +34,20 @@ import java.util.stream.Collectors;
 public class MonthlyCardPlanningService {
 
 	private final MonthlyCardPlanningRepository monthlyCardPlanningRepository;
-	private final CreditCardRepository creditCardRepository;
+	private final TransactionMethodRepository transactionMethodRepository;
 	private final UserRepository userRepository;
 	private final ExpenseRepository expenseRepository;
 	private final MonthlyCardPlanningMapper monthlyCardPlanningMapper;
-	private final CreditCardMapper creditCardMapper;
+	private final TransactionMethodMapper transactionMethodMapper;
 
 	@Transactional
 	public MonthlyCardPlanningResponse create(Long userId, MonthlyCardPlanningRequest request) {
-		CreditCard creditCard = findOwnedCreditCard(userId, request.creditCardId());
+		TransactionMethod transactionMethod = findOwnedCardTransactionMethod(userId, request.transactionMethodId());
 		assertPeriodAvailable(userId, request, null);
 
 		MonthlyCardPlanning planning = monthlyCardPlanningMapper.toEntity(request);
 		planning.setUser(userRepository.getReferenceById(userId));
-		planning.setCreditCard(creditCard);
+		planning.setTransactionMethod(transactionMethod);
 
 		MonthlyCardPlanning saved = monthlyCardPlanningRepository.save(planning);
 		return monthlyCardPlanningMapper.toResponse(saved);
@@ -59,11 +61,11 @@ public class MonthlyCardPlanningService {
 	@Transactional
 	public MonthlyCardPlanningResponse update(Long userId, Long planningId, MonthlyCardPlanningRequest request) {
 		MonthlyCardPlanning planning = findOwnedPlanning(userId, planningId);
-		CreditCard creditCard = findOwnedCreditCard(userId, request.creditCardId());
+		TransactionMethod transactionMethod = findOwnedCardTransactionMethod(userId, request.transactionMethodId());
 		assertPeriodAvailable(userId, request, planningId);
 
 		monthlyCardPlanningMapper.updateEntityFromRequest(request, planning);
-		planning.setCreditCard(creditCard);
+		planning.setTransactionMethod(transactionMethod);
 
 		return monthlyCardPlanningMapper.toResponse(planning);
 	}
@@ -79,15 +81,15 @@ public class MonthlyCardPlanningService {
 
 		Page<MonthlyCardPlanning> page = monthlyCardPlanningRepository.findByUserIdAndMonthAndYear(userId, month, year, pageable);
 
-		Map<Long, BigDecimal> spentByCreditCard = expenseRepository.sumAmountGroupedByCreditCard(userId, year, month).stream()
-				.collect(Collectors.toMap(CreditCardTotalProjection::getCreditCardId, CreditCardTotalProjection::getTotal));
+		Map<Long, BigDecimal> spentByTransactionMethod = expenseRepository.sumAmountGroupedByTransactionMethod(userId, year, month).stream()
+				.collect(Collectors.toMap(TransactionMethodTotalProjection::getTransactionMethodId, TransactionMethodTotalProjection::getTotal));
 
-		return page.map(planning -> toItemResponse(planning, spentByCreditCard));
+		return page.map(planning -> toItemResponse(planning, spentByTransactionMethod));
 	}
 
-	private MonthlyCardPlanningItemResponse toItemResponse(MonthlyCardPlanning planning, Map<Long, BigDecimal> spentByCreditCard) {
+	private MonthlyCardPlanningItemResponse toItemResponse(MonthlyCardPlanning planning, Map<Long, BigDecimal> spentByTransactionMethod) {
 		BigDecimal planned = planning.getAmount();
-		BigDecimal spent = spentByCreditCard.getOrDefault(planning.getCreditCard().getId(), BigDecimal.ZERO);
+		BigDecimal spent = spentByTransactionMethod.getOrDefault(planning.getTransactionMethod().getId(), BigDecimal.ZERO);
 		BigDecimal remaining = planned.subtract(spent);
 		BigDecimal percentage = planned.compareTo(BigDecimal.ZERO) == 0
 				? BigDecimal.ZERO
@@ -97,7 +99,7 @@ public class MonthlyCardPlanningService {
 
 		return new MonthlyCardPlanningItemResponse(
 				planning.getId(),
-				creditCardMapper.toResponse(planning.getCreditCard()),
+				transactionMethodMapper.toResponse(planning.getTransactionMethod()),
 				planned,
 				spent,
 				remaining,
@@ -105,8 +107,8 @@ public class MonthlyCardPlanningService {
 	}
 
 	private void assertPeriodAvailable(Long userId, MonthlyCardPlanningRequest request, Long planningIdToExclude) {
-		monthlyCardPlanningRepository.findByUserIdAndCreditCardIdAndMonthAndYear(
-						userId, request.creditCardId(), request.month(), request.year())
+		monthlyCardPlanningRepository.findByUserIdAndTransactionMethodIdAndMonthAndYear(
+						userId, request.transactionMethodId(), request.month(), request.year())
 				.filter(existing -> !existing.getId().equals(planningIdToExclude))
 				.ifPresent(existing -> {
 					throw new DuplicateResourceException(
@@ -119,9 +121,13 @@ public class MonthlyCardPlanningService {
 				.orElseThrow(() -> new ResourceNotFoundException("Monthly card planning not found: " + planningId));
 	}
 
-	private CreditCard findOwnedCreditCard(Long userId, Long creditCardId) {
-		return creditCardRepository.findByIdAndUserId(creditCardId, userId)
-				.orElseThrow(() -> new ResourceNotFoundException("Credit card not found: " + creditCardId));
+	private TransactionMethod findOwnedCardTransactionMethod(Long userId, Long transactionMethodId) {
+		TransactionMethod transactionMethod = transactionMethodRepository.findByIdAndUserId(transactionMethodId, userId)
+				.orElseThrow(() -> new ResourceNotFoundException("Transaction method not found: " + transactionMethodId));
+		if (transactionMethod.getType() != TransactionMethodType.CARD) {
+			throw new InvalidRequestException("Card planning requires a transaction method of type CARD: " + transactionMethodId);
+		}
+		return transactionMethod;
 	}
 
 }
