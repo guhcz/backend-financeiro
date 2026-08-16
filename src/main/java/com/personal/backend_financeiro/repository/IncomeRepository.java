@@ -45,4 +45,19 @@ public interface IncomeRepository extends JpaRepository<Income, Long>, JpaSpecif
 			""")
 	BigDecimal sumAmountByUserAndPeriod(@Param("userId") Long userId, @Param("start") LocalDate start, @Param("end") LocalDate end);
 
+	/**
+	 * Powers the Financial Analysis screen's income-vs-expenses/balance-evolution charts. Income
+	 * has no stored competence column (it always counts towards its own incomeDate's month), so
+	 * this groups by the real date the same way TransactionRepository's month/year filter does.
+	 * Native query bypasses @SQLRestriction, so active = true must be repeated explicitly.
+	 */
+	@Query(value = """
+			SELECT EXTRACT(YEAR FROM income_date)::int AS year, EXTRACT(MONTH FROM income_date)::int AS month,
+			       COALESCE(SUM(amount), 0) AS total
+			FROM incomes
+			WHERE user_id = :userId AND active = true AND income_date BETWEEN :start AND :end
+			GROUP BY 1, 2
+			""", nativeQuery = true)
+	List<MonthTotalProjection> sumAmountGroupedByMonth(@Param("userId") Long userId, @Param("start") LocalDate start, @Param("end") LocalDate end);
+
 }

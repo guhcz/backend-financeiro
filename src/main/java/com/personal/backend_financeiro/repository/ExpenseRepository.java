@@ -1,6 +1,7 @@
 package com.personal.backend_financeiro.repository;
 
 import com.personal.backend_financeiro.entity.Expense;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -112,5 +113,74 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
 
 	List<Expense> findTop5ByUserIdAndBillingYearAndBillingMonthOrderByExpenseDateDescCreatedAtDesc(
 			Long userId, Integer billingYear, Integer billingMonth);
+
+	/**
+	 * Powers the Financial Analysis screen, which accepts an arbitrary startDate/endDate and
+	 * translates it into an inclusive billingYear/billingMonth range (see DateRangeUtils /
+	 * FinancialAnalysisService) instead of a single month like the queries above. The tuple
+	 * comparison mirrors composite-key range filtering so the (user_id, billing_year,
+	 * billing_month) index can still be used.
+	 */
+	@Query("""
+			SELECT e.billingYear AS billingYear, e.billingMonth AS billingMonth, COALESCE(SUM(e.amount), 0) AS total
+			FROM Expense e
+			WHERE e.user.id = :userId
+			AND (e.billingYear > :fromYear OR (e.billingYear = :fromYear AND e.billingMonth >= :fromMonth))
+			AND (e.billingYear < :toYear OR (e.billingYear = :toYear AND e.billingMonth <= :toMonth))
+			GROUP BY e.billingYear, e.billingMonth
+			""")
+	List<BillingPeriodTotalProjection> sumAmountGroupedByBillingPeriod(
+			@Param("userId") Long userId,
+			@Param("fromYear") Integer fromYear, @Param("fromMonth") Integer fromMonth,
+			@Param("toYear") Integer toYear, @Param("toMonth") Integer toMonth);
+
+	@Query("""
+			SELECT e.category.id AS categoryId, COALESCE(SUM(e.amount), 0) AS total
+			FROM Expense e
+			WHERE e.user.id = :userId
+			AND (e.billingYear > :fromYear OR (e.billingYear = :fromYear AND e.billingMonth >= :fromMonth))
+			AND (e.billingYear < :toYear OR (e.billingYear = :toYear AND e.billingMonth <= :toMonth))
+			GROUP BY e.category.id
+			""")
+	List<CategoryTotalProjection> sumAmountGroupedByCategoryInRange(
+			@Param("userId") Long userId,
+			@Param("fromYear") Integer fromYear, @Param("fromMonth") Integer fromMonth,
+			@Param("toYear") Integer toYear, @Param("toMonth") Integer toMonth);
+
+	/**
+	 * Unlike sumAmountGroupedByTransactionMethod (CREDIT-only, feeds card planning budgets), this
+	 * groups every payment method regardless of cardTransactionMode -- the same physical card
+	 * shows up as two separate rows (CREDIT and DEBIT) when both were used in the period, which is
+	 * the intended analytical grouping for the Financial Analysis screen (see spec section 8).
+	 */
+	@Query("""
+			SELECT e.transactionMethod.id AS transactionMethodId, e.transactionMethod.name AS name,
+			       e.transactionMethod.type AS methodType, e.cardTransactionMode AS cardTransactionMode,
+			       COALESCE(SUM(e.amount), 0) AS total, COUNT(e) AS transactionCount
+			FROM Expense e
+			WHERE e.user.id = :userId
+			AND (e.billingYear > :fromYear OR (e.billingYear = :fromYear AND e.billingMonth >= :fromMonth))
+			AND (e.billingYear < :toYear OR (e.billingYear = :toYear AND e.billingMonth <= :toMonth))
+			GROUP BY e.transactionMethod.id, e.transactionMethod.name, e.transactionMethod.type, e.cardTransactionMode
+			""")
+	List<PaymentMethodTotalProjection> sumAmountGroupedByTransactionMethodInRange(
+			@Param("userId") Long userId,
+			@Param("fromYear") Integer fromYear, @Param("fromMonth") Integer fromMonth,
+			@Param("toYear") Integer toYear, @Param("toMonth") Integer toMonth);
+
+	@Query("""
+			SELECT e FROM Expense e
+			JOIN FETCH e.category
+			JOIN FETCH e.transactionMethod
+			WHERE e.user.id = :userId
+			AND (e.billingYear > :fromYear OR (e.billingYear = :fromYear AND e.billingMonth >= :fromMonth))
+			AND (e.billingYear < :toYear OR (e.billingYear = :toYear AND e.billingMonth <= :toMonth))
+			ORDER BY e.amount DESC
+			""")
+	List<Expense> findTopExpensesInRange(
+			@Param("userId") Long userId,
+			@Param("fromYear") Integer fromYear, @Param("fromMonth") Integer fromMonth,
+			@Param("toYear") Integer toYear, @Param("toMonth") Integer toMonth,
+			Pageable pageable);
 
 }
