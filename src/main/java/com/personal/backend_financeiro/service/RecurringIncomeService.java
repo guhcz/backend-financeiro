@@ -5,7 +5,9 @@ import com.personal.backend_financeiro.dto.recurringincome.RecurringIncomeFilter
 import com.personal.backend_financeiro.dto.recurringincome.RecurringIncomeResponse;
 import com.personal.backend_financeiro.dto.recurringincome.RecurringIncomeUpdateRequest;
 import com.personal.backend_financeiro.entity.Category;
+import com.personal.backend_financeiro.entity.Income;
 import com.personal.backend_financeiro.entity.RecurringIncome;
+import com.personal.backend_financeiro.enums.ReceiptMethod;
 import com.personal.backend_financeiro.enums.RecurrenceFrequency;
 import com.personal.backend_financeiro.enums.RecurrenceStatus;
 import com.personal.backend_financeiro.exception.InvalidRequestException;
@@ -25,6 +27,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -106,7 +109,27 @@ public class RecurringIncomeService {
 			rule.setNextGenerationDate(RecurrenceDateCalculator.resolveNextGenerationDateFrom(LocalDate.now(), request.receiptDay()));
 		}
 
+		applyToFutureOccurrences(rule, category, request.description(), request.amount(),
+				request.receiptMethod(), request.notes(), LocalDate.now());
+
 		return recurringIncomeMapper.toResponse(rule);
+	}
+
+	/**
+	 * Occurrences up to app.recurring-income.lookahead-months ahead are already persisted by the
+	 * time a rule is edited or ended, so those edits/endings need to explicitly cascade to them —
+	 * otherwise a rule change would only be visible on the current month, with every pre-generated
+	 * future month silently keeping the old values.
+	 */
+	private void applyToFutureOccurrences(RecurringIncome rule, Category category, String description,
+			BigDecimal amount, ReceiptMethod receiptMethod, String notes, LocalDate fromDateInclusive) {
+		for (Income future : incomeRepository.findByRecurringIncomeIdAndIncomeDateGreaterThanEqual(rule.getId(), fromDateInclusive)) {
+			future.setCategory(category);
+			future.setDescription(description);
+			future.setAmount(amount);
+			future.setReceiptMethod(receiptMethod);
+			future.setNotes(notes);
+		}
 	}
 
 	@Transactional
@@ -139,8 +162,10 @@ public class RecurringIncomeService {
 	@Transactional
 	public void delete(Long userId, Long id) {
 		RecurringIncome rule = findOwnedRule(userId, id);
-		if (incomeRepository.existsByRecurringIncomeId(id)) {
+		if (incomeRepository.existsIncludingInactiveByRecurringIncomeId(id)) {
 			rule.setStatus(RecurrenceStatus.ENDED);
+			incomeRepository.deleteAll(
+					incomeRepository.findByRecurringIncomeIdAndIncomeDateGreaterThanEqual(id, LocalDate.now()));
 		} else {
 			recurringIncomeRepository.delete(rule);
 		}

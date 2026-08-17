@@ -1,0 +1,123 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0020-add-transaction-method-columns-to-recurring-expenses
+      author: backend-financeiro
+      changes:
+        - addColumn:
+            tableName: recurring_expenses
+            columns:
+              - column:
+                  name: transaction_method_id
+                  type: BIGINT
+              - column:
+                  name: card_transaction_mode
+                  type: VARCHAR(10)
+
+  - changeSet:
+      id: 0020-backfill-recurring-expenses-transaction-method-credit
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: >
+              UPDATE recurring_expenses e
+              SET transaction_method_id = tm.id, card_transaction_mode = 'CREDIT'
+              FROM transaction_methods tm
+              WHERE e.payment_method = 'CREDIT_CARD' AND tm.credit_card_id = e.credit_card_id;
+
+  - changeSet:
+      id: 0020-backfill-recurring-expenses-transaction-method-debit
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: >
+              UPDATE recurring_expenses e
+              SET transaction_method_id = tm.id, card_transaction_mode = 'DEBIT'
+              FROM transaction_methods tm
+              WHERE e.payment_method = 'DEBIT_CARD'
+                AND tm.user_id = e.user_id AND tm.name = 'Cartão de débito (legado)';
+
+  - changeSet:
+      id: 0020-backfill-recurring-expenses-transaction-method-other
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: >
+              UPDATE recurring_expenses e
+              SET transaction_method_id = tm.id
+              FROM transaction_methods tm
+              WHERE e.payment_method NOT IN ('CREDIT_CARD', 'DEBIT_CARD')
+                AND tm.user_id = e.user_id AND tm.type = e.payment_method AND tm.credit_card_id IS NULL;
+
+  - changeSet:
+      id: 0020-backfill-recurring-expenses-transaction-method-legacy-credit
+      author: backend-financeiro
+      comment: >
+        CREDIT_CARD recurring expenses that never linked a credit_card (data gap predating strict
+        validation) fall back to the per-user "Cartão de crédito (legado)" method created in 0018.
+      changes:
+        - sql:
+            sql: >
+              UPDATE recurring_expenses e
+              SET transaction_method_id = tm.id, card_transaction_mode = 'CREDIT'
+              FROM transaction_methods tm
+              WHERE e.payment_method = 'CREDIT_CARD' AND e.credit_card_id IS NULL
+                AND tm.user_id = e.user_id AND tm.name = 'Cartão de crédito (legado)';
+
+  - changeSet:
+      id: 0020-recurring-expenses-transaction-method-not-null
+      author: backend-financeiro
+      changes:
+        - addNotNullConstraint:
+            tableName: recurring_expenses
+            columnName: transaction_method_id
+            columnDataType: BIGINT
+
+  - changeSet:
+      id: 0020-recurring-expenses-transaction-method-check-card-mode
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: >
+              ALTER TABLE recurring_expenses ADD CONSTRAINT ck_recurring_expenses_card_transaction_mode_valid
+              CHECK (card_transaction_mode IS NULL OR card_transaction_mode IN ('CREDIT', 'DEBIT'));
+      rollback:
+        - sql:
+            sql: ALTER TABLE recurring_expenses DROP CONSTRAINT ck_recurring_expenses_card_transaction_mode_valid;
+
+  - changeSet:
+      id: 0020-recurring-expenses-transaction-method-fk
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: recurring_expenses
+            baseColumnNames: transaction_method_id
+            referencedTableName: transaction_methods
+            referencedColumnNames: id
+            constraintName: fk_recurring_expenses_transaction_method
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0020-recurring-expenses-transaction-method-index
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: recurring_expenses
+            indexName: idx_recurring_expenses_transaction_method
+            columns:
+              - column:
+                  name: transaction_method_id
+
+  - changeSet:
+      id: 0020-drop-recurring-expenses-legacy-columns
+      author: backend-financeiro
+      comment: >
+        Drops payment_method and credit_card_id (and, transitively,
+        fk_recurring_expenses_credit_card, idx_recurring_expenses_credit_card).
+      changes:
+        - dropColumn:
+            tableName: recurring_expenses
+            columns:
+              - column:
+                  name: payment_method
+              - column:
+                  name: credit_card_id

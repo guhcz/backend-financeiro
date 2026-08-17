@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0023-recompute-billing-competence-for-non-credit
+      author: backend-financeiro
+      comment: >
+        Financial competence rule refined: only CARD + CREDIT keeps counting towards the month
+        after the purchase date (invoice behavior, unchanged). Every other case -- CARD + DEBIT
+        included -- now counts towards its own expense_date's month, since those settle
+        immediately instead of going through a monthly invoice (see CompetenceResolver).
+        Recomputes billing_month/billing_year for existing non-credit rows so historical data
+        matches the new rule, same precedent as migration 0016.
+      changes:
+        - sql:
+            sql: >
+              UPDATE expenses
+              SET billing_month = EXTRACT(MONTH FROM expense_date),
+                  billing_year = EXTRACT(YEAR FROM expense_date)
+              WHERE card_transaction_mode IS NULL OR card_transaction_mode = 'DEBIT';

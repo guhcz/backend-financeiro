@@ -1,6 +1,7 @@
 package com.personal.backend_financeiro.dto.transaction;
 
 import com.personal.backend_financeiro.dto.category.CategoryResponse;
+import com.personal.backend_financeiro.enums.CardTransactionMode;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -17,13 +18,20 @@ public record TransactionResponse(
 		String description,
 		BigDecimal amount,
 		LocalDate date,
-		@Schema(description = "Forma de pagamento (despesa) ou de recebimento (receita), como texto solto — " +
-				"os dois domínios usam enums diferentes (PaymentMethod / ReceiptMethod).")
+		@Schema(description = "Nome da forma de pagamento (despesa, ex.: \"Nubank\", \"Pix\") ou de recebimento " +
+				"(receita), como texto solto — os dois domínios usam modelos diferentes (TransactionMethod / ReceiptMethod).")
 		String method,
+		@Schema(description = "CREDIT/DEBIT quando a despesa foi feita em um TransactionMethod do tipo CARD; nulo " +
+				"para qualquer outra forma de pagamento e para receitas.")
+		CardTransactionMode cardTransactionMode,
 		boolean recurring,
 		boolean generatedAutomatically,
 		String notes,
-		CategoryResponse category
+		CategoryResponse category,
+		@Schema(description = "Mês/ano de competência (fatura, para cartão de crédito; mês da própria data para " +
+				"os demais meios). Nulo para receitas, que não têm conceito de fatura.")
+		Integer billingMonth,
+		Integer billingYear
 
 ) {
 }

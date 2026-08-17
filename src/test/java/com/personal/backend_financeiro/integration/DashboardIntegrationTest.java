@@ -12,6 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class DashboardIntegrationTest extends AbstractApiIntegrationTest {
 
+	private final java.util.Map<String, Long> pixMethodByToken = new java.util.HashMap<>();
+
 	@Test
 	void dashboard_returns400_whenMonthOutOfRange() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
@@ -63,12 +65,13 @@ class DashboardIntegrationTest extends AbstractApiIntegrationTest {
 	void dashboard_withLimitAndExpenses_computesSummaryAndFinancialStatus() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long categoryId = createCategory(token, "Food");
-		createMonthlyLimit(token, 8, 2026, "1000.00");
-		createExpense(token, categoryId, "850.00", "2026-08-05");
+		createMonthlyLimit(token, 7, 2026, "1000.00");
+		// Pix competence is the expense date's own month.
+		createExpense(token, categoryId, "850.00", "2026-07-05");
 
 		mockMvc.perform(get("/api/v1/dashboard")
 						.header("Authorization", "Bearer " + token)
-						.param("month", "8")
+						.param("month", "7")
 						.param("year", "2026"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.summary.totalExpenses").value(850.00))
@@ -85,17 +88,17 @@ class DashboardIntegrationTest extends AbstractApiIntegrationTest {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long categoryId = createCategory(token, "Food");
 		for (int day = 1; day <= 6; day++) {
-			createExpense(token, categoryId, "10.00", "2026-08-0" + day);
+			createExpense(token, categoryId, "10.00", "2026-07-0" + day);
 		}
 
 		mockMvc.perform(get("/api/v1/dashboard")
 						.header("Authorization", "Bearer " + token)
-						.param("month", "8")
+						.param("month", "7")
 						.param("year", "2026"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.recentExpenses.length()").value(5))
-				.andExpect(jsonPath("$.recentExpenses[0].expenseDate").value("2026-08-06"))
-				.andExpect(jsonPath("$.recentExpenses[4].expenseDate").value("2026-08-02"));
+				.andExpect(jsonPath("$.recentExpenses[0].expenseDate").value("2026-07-06"))
+				.andExpect(jsonPath("$.recentExpenses[4].expenseDate").value("2026-07-02"));
 	}
 
 	@Test
@@ -110,9 +113,9 @@ class DashboardIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"Internet","amount":119.90,
-								"paymentMethod":"CREDIT_CARD","notes":null,"frequency":"MONTHLY",
+								"transactionMethodId":%d,"cardTransactionMode":null,"notes":null,"frequency":"MONTHLY",
 								"dueDay":%d,"startDate":"%s","endDate":null}"""
-								.formatted(categoryId, today.getDayOfMonth(), tomorrow)))
+								.formatted(categoryId, createTransactionMethod(token, "Pix", "PIX"), today.getDayOfMonth(), tomorrow)))
 				.andExpect(status().isCreated());
 
 		mockMvc.perform(get("/api/v1/dashboard")
@@ -129,12 +132,12 @@ class DashboardIntegrationTest extends AbstractApiIntegrationTest {
 	void dashboard_withIncomes_computesTotalIncomeAndBalance() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long categoryId = createCategory(token, "Salary");
-		createExpense(token, categoryId, "400.00", "2026-08-05");
-		createIncome(token, categoryId, "1000.00", "2026-08-01");
+		createExpense(token, categoryId, "400.00", "2026-07-05");
+		createIncome(token, categoryId, "1000.00", "2026-07-01");
 
 		mockMvc.perform(get("/api/v1/dashboard")
 						.header("Authorization", "Bearer " + token)
-						.param("month", "8")
+						.param("month", "7")
 						.param("year", "2026"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.summary.totalIncome").value(1000.00))
@@ -184,9 +187,19 @@ class DashboardIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"Expense","amount":%s,
-								"expenseDate":"%s","paymentMethod":"PIX","notes":null}"""
-								.formatted(categoryId, amount, date)))
+								"expenseDate":"%s","transactionMethodId":%d,"cardTransactionMode":null,"notes":null}"""
+								.formatted(categoryId, amount, date, pixMethod(token))))
 				.andExpect(status().isCreated());
+	}
+
+	private long pixMethod(String token) throws Exception {
+		Long existing = pixMethodByToken.get(token);
+		if (existing != null) {
+			return existing;
+		}
+		long id = createTransactionMethod(token, "Pix", "PIX");
+		pixMethodByToken.put(token, id);
+		return id;
 	}
 
 	private void createIncome(String token, long categoryId, String amount, String date) throws Exception {

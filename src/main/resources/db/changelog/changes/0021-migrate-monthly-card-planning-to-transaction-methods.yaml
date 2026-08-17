@@ -1,0 +1,63 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0021-add-transaction-method-column-to-monthly-card-plannings
+      author: backend-financeiro
+      changes:
+        - addColumn:
+            tableName: monthly_card_plannings
+            columns:
+              - column:
+                  name: transaction_method_id
+                  type: BIGINT
+
+  - changeSet:
+      id: 0021-backfill-monthly-card-plannings-transaction-method
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: >
+              UPDATE monthly_card_plannings p
+              SET transaction_method_id = tm.id
+              FROM transaction_methods tm
+              WHERE tm.credit_card_id = p.credit_card_id;
+
+  - changeSet:
+      id: 0021-monthly-card-plannings-transaction-method-not-null
+      author: backend-financeiro
+      changes:
+        - addNotNullConstraint:
+            tableName: monthly_card_plannings
+            columnName: transaction_method_id
+            columnDataType: BIGINT
+
+  - changeSet:
+      id: 0021-monthly-card-plannings-transaction-method-fk
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: monthly_card_plannings
+            baseColumnNames: transaction_method_id
+            referencedTableName: transaction_methods
+            referencedColumnNames: id
+            constraintName: fk_monthly_card_plannings_transaction_method
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0021-monthly-card-plannings-transaction-method-unique-period
+      author: backend-financeiro
+      changes:
+        - addUniqueConstraint:
+            tableName: monthly_card_plannings
+            columnNames: user_id, transaction_method_id, month, year
+            constraintName: uk_monthly_card_plannings_user_method_period
+
+  - changeSet:
+      id: 0021-drop-monthly-card-plannings-legacy-credit-card-column
+      author: backend-financeiro
+      comment: >
+        Drops credit_card_id and, transitively, fk_monthly_card_plannings_credit_card and the old
+        uk_monthly_card_plannings_user_card_period unique constraint.
+      changes:
+        - dropColumn:
+            tableName: monthly_card_plannings
+            columnName: credit_card_id

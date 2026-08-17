@@ -8,11 +8,13 @@ import com.personal.backend_financeiro.repository.RecurringIncomeRepository;
 import com.personal.backend_financeiro.util.RecurrenceDateCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 
 @Slf4j
 @Service
@@ -22,18 +24,12 @@ public class RecurringIncomeGenerationService {
 	private final IncomeRepository incomeRepository;
 	private final RecurringIncomeRepository recurringIncomeRepository;
 
+	@Value("${app.recurring-income.lookahead-months:12}")
+	private int lookAheadMonths;
+
 	@Transactional
 	public void generateInitialOccurrenceIfDue(RecurringIncome rule, LocalDate today) {
-		LocalDate candidate = RecurrenceDateCalculator.resolveOccurrenceDate(rule.getStartDate(), rule.getReceiptDay());
-		boolean startedByToday = !rule.getStartDate().isAfter(today);
-		boolean withinEndDate = rule.getEndDate() == null || !rule.getEndDate().isBefore(candidate);
-
-		if (!startedByToday || !withinEndDate) {
-			return;
-		}
-
-		generateOccurrence(rule, rule.getStartDate().getYear(), rule.getStartDate().getMonthValue(), candidate);
-		rule.setNextGenerationDate(RecurrenceDateCalculator.nextMonthOccurrence(candidate, rule.getReceiptDay()));
+		generateUpTo(rule, horizonEnd(today));
 	}
 
 	@Transactional
@@ -42,17 +38,38 @@ public class RecurringIncomeGenerationService {
 		if (rule == null || rule.getStatus() != RecurrenceStatus.ACTIVE) {
 			return;
 		}
+		generateUpTo(rule, horizonEnd(today));
+	}
 
-		LocalDate occurrenceDate = rule.getNextGenerationDate();
-		if (occurrenceDate.isAfter(today)) {
-			return;
-		}
-		if (rule.getEndDate() != null && rule.getEndDate().isBefore(occurrenceDate)) {
-			return;
-		}
+	/**
+	 * The last day of the (today + lookAheadMonths)th month, not a fixed day count — so the
+	 * current month's occurrence is always covered by lookahead-months=0 regardless of whether
+	 * today happens to fall before or after the rule's receipt day within the month, and each
+	 * additional lookahead month always adds one full calendar month.
+	 */
+	public LocalDate horizonEnd(LocalDate today) {
+		return YearMonth.from(today).plusMonths(lookAheadMonths).atEndOfMonth();
+	}
 
-		generateOccurrence(rule, occurrenceDate.getYear(), occurrenceDate.getMonthValue(), occurrenceDate);
-		rule.setNextGenerationDate(RecurrenceDateCalculator.nextMonthOccurrence(occurrenceDate, rule.getReceiptDay()));
+	/**
+	 * Generates every not-yet-created occurrence from the rule's current nextGenerationDate up
+	 * through horizonEnd, so fixed incomes are visible in Movimentações months ahead of their
+	 * actual receipt date instead of only appearing once the day arrives. Advances
+	 * nextGenerationDate one month at a time as it goes, so the next call (whether right after
+	 * creation or from the next day's job run) picks up exactly where this one left off.
+	 */
+	private void generateUpTo(RecurringIncome rule, LocalDate horizonEnd) {
+		while (true) {
+			LocalDate occurrenceDate = rule.getNextGenerationDate();
+			if (occurrenceDate.isAfter(horizonEnd)) {
+				break;
+			}
+			if (rule.getEndDate() != null && rule.getEndDate().isBefore(occurrenceDate)) {
+				break;
+			}
+			generateOccurrence(rule, occurrenceDate.getYear(), occurrenceDate.getMonthValue(), occurrenceDate);
+			rule.setNextGenerationDate(RecurrenceDateCalculator.nextMonthOccurrence(occurrenceDate, rule.getReceiptDay()));
+		}
 	}
 
 	private void generateOccurrence(RecurringIncome rule, int year, int month, LocalDate incomeDate) {

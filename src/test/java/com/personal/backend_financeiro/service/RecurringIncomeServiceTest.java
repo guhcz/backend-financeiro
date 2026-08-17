@@ -224,7 +224,7 @@ class RecurringIncomeServiceTest {
 	void delete_hardDeletes_whenNoIncomesGenerated() {
 		RecurringIncome rule = ruleWithStatus(RecurrenceStatus.ACTIVE);
 		when(recurringIncomeRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(rule));
-		when(incomeRepository.existsByRecurringIncomeId(1L)).thenReturn(false);
+		when(incomeRepository.existsIncludingInactiveByRecurringIncomeId(1L)).thenReturn(false);
 
 		recurringIncomeService.delete(1L, 1L);
 
@@ -235,12 +235,43 @@ class RecurringIncomeServiceTest {
 	void delete_setsStatusToEnded_whenIncomesAlreadyGenerated() {
 		RecurringIncome rule = ruleWithStatus(RecurrenceStatus.ACTIVE);
 		when(recurringIncomeRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(rule));
-		when(incomeRepository.existsByRecurringIncomeId(1L)).thenReturn(true);
+		when(incomeRepository.existsIncludingInactiveByRecurringIncomeId(1L)).thenReturn(true);
 
 		recurringIncomeService.delete(1L, 1L);
 
 		assertThat(rule.getStatus()).isEqualTo(RecurrenceStatus.ENDED);
 		verify(recurringIncomeRepository, never()).delete(any(RecurringIncome.class));
+	}
+
+	@Test
+	void update_appliesNewValuesToAlreadyGeneratedFutureIncomes() {
+		RecurringIncome rule = ruleWithStatus(RecurrenceStatus.ACTIVE);
+		Category newCategory = new Category();
+		com.personal.backend_financeiro.entity.Income future = com.personal.backend_financeiro.entity.Income.builder()
+				.description("Salário").amount(new BigDecimal("6200.00")).receiptMethod(ReceiptMethod.BANK_TRANSFER).build();
+		when(recurringIncomeRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(rule));
+		when(categoryRepository.findByIdAndUserId(9L, 1L)).thenReturn(Optional.of(newCategory));
+		when(incomeRepository.findByRecurringIncomeIdAndIncomeDateGreaterThanEqual(any(), any()))
+				.thenReturn(java.util.List.of(future));
+
+		recurringIncomeService.update(1L, 1L, sampleUpdateRequest(9L, 5, null));
+
+		assertThat(future.getCategory()).isSameAs(newCategory);
+		assertThat(future.getAmount()).isEqualByComparingTo("6200.00");
+	}
+
+	@Test
+	void delete_removesAlreadyGeneratedFutureIncomes_whenEndingRule() {
+		RecurringIncome rule = ruleWithStatus(RecurrenceStatus.ACTIVE);
+		when(recurringIncomeRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(rule));
+		when(incomeRepository.existsIncludingInactiveByRecurringIncomeId(1L)).thenReturn(true);
+		java.util.List<com.personal.backend_financeiro.entity.Income> future = java.util.List.of(
+				com.personal.backend_financeiro.entity.Income.builder().build());
+		when(incomeRepository.findByRecurringIncomeIdAndIncomeDateGreaterThanEqual(any(), any())).thenReturn(future);
+
+		recurringIncomeService.delete(1L, 1L);
+
+		verify(incomeRepository).deleteAll(future);
 	}
 
 }

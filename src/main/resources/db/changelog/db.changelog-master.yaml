@@ -32,4 +32,40 @@ databaseChangeLog:
   - include:
       file: changes/0011-add-recurrence-columns-to-incomes.yaml
       relativeToChangelogFile: true
+  - include:
+      file: changes/0012-create-credit-cards-table.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0013-create-monthly-card-plannings-table.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0014-add-credit-card-and-billing-columns-to-expenses.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0015-add-credit-card-to-recurring-expenses.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0016-recompute-billing-competence-to-next-month.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0017-create-transaction-methods-table.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0018-migrate-existing-payment-data-to-transaction-methods.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0019-migrate-expenses-to-transaction-methods.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0020-migrate-recurring-expenses-to-transaction-methods.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0021-migrate-monthly-card-planning-to-transaction-methods.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0022-drop-legacy-credit-card-owner-columns.yaml
+      relativeToChangelogFile: true
+  - include:
+      file: changes/0023-recompute-billing-competence-for-non-credit.yaml
+      relativeToChangelogFile: true
 

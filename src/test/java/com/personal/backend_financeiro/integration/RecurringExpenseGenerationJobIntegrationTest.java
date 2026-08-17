@@ -20,9 +20,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Overrides app.recurring-expense.scheduler-enabled=true just for this class so the
  * {@link RecurringExpenseGenerationJob} bean exists (it's conditional and disabled by
  * default in application-test.properties). The job's run() method is invoked directly
- * rather than waiting on the real cron trigger.
+ * rather than waiting on the real cron trigger. Also pins lookahead-months to a small,
+ * easy-to-count value instead of the production default (12).
  */
-@TestPropertySource(properties = "app.recurring-expense.scheduler-enabled=true")
+@TestPropertySource(properties = {
+		"app.recurring-expense.scheduler-enabled=true",
+		"app.recurring-expense.lookahead-months=2"
+})
 class RecurringExpenseGenerationJobIntegrationTest extends AbstractApiIntegrationTest {
 
 	@Autowired
@@ -35,19 +39,36 @@ class RecurringExpenseGenerationJobIntegrationTest extends AbstractApiIntegratio
 	private ExpenseRepository expenseRepository;
 
 	@Test
-	void run_generatesOccurrence_andAdvancesNextGenerationDate_forEligibleRule() throws Exception {
+	void create_generatesOccurrencesUpToLookaheadHorizon_immediately() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long categoryId = createCategory(token, "Home");
-		long ruleId = createRecurringExpense(token, categoryId, "Internet", 10, LocalDate.now().plusMonths(6));
+		long expensesBefore = expenseRepository.count();
+		int dueDay = Math.min(LocalDate.now().getDayOfMonth(), 28);
 
+		long ruleId = createRecurringExpense(token, categoryId, "Internet", dueDay, LocalDate.now());
+
+		// lookahead-months=2 means "this occurrence + 2 more months ahead" = 3, generated
+		// synchronously at creation time, with no need for the daily job to ever run.
+		assertThat(expenseRepository.count()).isEqualTo(expensesBefore + 3);
+		RecurringExpense rule = recurringExpenseRepository.findById(ruleId).orElseThrow();
+		assertThat(rule.getNextGenerationDate()).isAfter(LocalDate.now().plusMonths(2));
+	}
+
+	@Test
+	void run_catchesUpEveryOccurrence_upToLookaheadHorizon_inOneRun() throws Exception {
+		String token = registerAndLogin("Alice", "alice@example.com", "password123");
+		long categoryId = createCategory(token, "Home");
+		// startDate beyond the 2-month horizon so creation itself generates nothing yet.
+		long ruleId = createRecurringExpense(token, categoryId, "Internet", 10, LocalDate.now().plusMonths(6));
 		makeRuleDueToday(ruleId);
 		long expensesBefore = expenseRepository.count();
 
 		job.run();
 
-		assertThat(expenseRepository.count()).isEqualTo(expensesBefore + 1);
+		// Catches up today's occurrence plus every month within the horizon in this single run.
+		assertThat(expenseRepository.count()).isEqualTo(expensesBefore + 3);
 		RecurringExpense rule = recurringExpenseRepository.findById(ruleId).orElseThrow();
-		assertThat(rule.getNextGenerationDate()).isAfter(LocalDate.now());
+		assertThat(rule.getNextGenerationDate()).isAfter(LocalDate.now().plusMonths(2));
 	}
 
 	@Test
@@ -68,7 +89,7 @@ class RecurringExpenseGenerationJobIntegrationTest extends AbstractApiIntegratio
 	}
 
 	@Test
-	void run_doesNotDuplicate_whenExecutedTwiceForTheSameDueOccurrence() throws Exception {
+	void run_doesNotGenerateFurther_onceCaughtUpToHorizon() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long categoryId = createCategory(token, "Home");
 		long ruleId = createRecurringExpense(token, categoryId, "Internet", 10, LocalDate.now().plusMonths(6));
@@ -103,9 +124,9 @@ class RecurringExpenseGenerationJobIntegrationTest extends AbstractApiIntegratio
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"%s","amount":119.90,
-								"paymentMethod":"CREDIT_CARD","notes":null,"frequency":"MONTHLY",
+								"transactionMethodId":%d,"cardTransactionMode":null,"notes":null,"frequency":"MONTHLY",
 								"dueDay":%d,"startDate":"%s","endDate":null}"""
-								.formatted(categoryId, description, dueDay, startDate)))
+								.formatted(categoryId, description, createTransactionMethod(token, "Pix", "PIX"), dueDay, startDate)))
 				.andExpect(status().isCreated())
 				.andReturn();
 		return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();

@@ -1,7 +1,6 @@
 package com.personal.backend_financeiro.repository;
 
 import com.personal.backend_financeiro.entity.Expense;
-import com.personal.backend_financeiro.enums.PaymentMethod;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
@@ -29,11 +28,11 @@ public final class ExpenseSpecifications {
 		return (root, query, cb) -> cb.equal(root.get("category").get("id"), categoryId);
 	}
 
-	public static Specification<Expense> hasPaymentMethod(PaymentMethod paymentMethod) {
-		if (paymentMethod == null) {
+	public static Specification<Expense> hasTransactionMethod(Long transactionMethodId) {
+		if (transactionMethodId == null) {
 			return Specification.unrestricted();
 		}
-		return (root, query, cb) -> cb.equal(root.get("paymentMethod"), paymentMethod);
+		return (root, query, cb) -> cb.equal(root.get("transactionMethod").get("id"), transactionMethodId);
 	}
 
 	public static Specification<Expense> expenseDateFrom(LocalDate from) {

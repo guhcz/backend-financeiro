@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0016-recompute-billing-competence-to-next-month
+      author: backend-financeiro
+      comment: >
+        Financial competence rule simplified: every expense now counts towards the month after
+        its own expense_date, regardless of payment method (no more per-card invoice cycle math
+        or manual override). Recomputes billing_month/billing_year for all existing rows so
+        historical data matches the new rule instead of only new writes.
+      changes:
+        - sql:
+            sql: >
+              UPDATE expenses
+              SET billing_month = EXTRACT(MONTH FROM (expense_date + INTERVAL '1 month')),
+                  billing_year = EXTRACT(YEAR FROM (expense_date + INTERVAL '1 month'));

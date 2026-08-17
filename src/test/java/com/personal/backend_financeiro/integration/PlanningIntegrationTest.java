@@ -10,20 +10,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 
+	private final java.util.Map<String, Long> pixMethodByToken = new java.util.HashMap<>();
+
 	@Test
 	void summary_withLimit_returnsAllComputedFields() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long food = createCategory(token, "Food");
 		long transport = createCategory(token, "Transport");
-		createMonthlyLimit(token, 8, 2026, "15000.00");
-		createPlanning(token, food, 8, 2026, "1800.00");
-		createPlanning(token, transport, 8, 2026, "500.00");
-		createExpense(token, food, "5250.00", "2026-08-05");
-		createExpense(token, transport, "3000.00", "2026-08-10");
+		createMonthlyLimit(token, 7, 2026, "15000.00");
+		createPlanning(token, food, 7, 2026, "1800.00");
+		createPlanning(token, transport, 7, 2026, "500.00");
+		// Pix competence is the expense date's own month.
+		createExpense(token, food, "5250.00", "2026-07-05");
+		createExpense(token, transport, "3000.00", "2026-07-10");
 
 		mockMvc.perform(get("/api/v1/planning/summary")
 						.header("Authorization", "Bearer " + token)
-						.param("month", "8")
+						.param("month", "7")
 						.param("year", "2026"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.monthlyLimit").value(15000.00))
@@ -38,12 +41,12 @@ class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 	void summary_withoutLimit_returnsNullLimitFields_butKeepsSpentAndPlanned() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long food = createCategory(token, "Food");
-		createPlanning(token, food, 8, 2026, "800.00");
-		createExpense(token, food, "620.00", "2026-08-05");
+		createPlanning(token, food, 7, 2026, "800.00");
+		createExpense(token, food, "620.00", "2026-07-05");
 
 		mockMvc.perform(get("/api/v1/planning/summary")
 						.header("Authorization", "Bearer " + token)
-						.param("month", "8")
+						.param("month", "7")
 						.param("year", "2026"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.monthlyLimit").doesNotExist())
@@ -60,7 +63,7 @@ class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 
 		mockMvc.perform(get("/api/v1/planning/summary")
 						.header("Authorization", "Bearer " + token)
-						.param("month", "8")
+						.param("month", "7")
 						.param("year", "2026"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.totalSpent").value(0))
@@ -84,7 +87,7 @@ class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 
 		mockMvc.perform(get("/api/v1/planning/expenses-by-category")
 						.header("Authorization", "Bearer " + token)
-						.param("month", "8")
+						.param("month", "7")
 						.param("year", "2026"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.length()").value(0));
@@ -95,12 +98,12 @@ class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long food = createCategory(token, "Food");
 		long transport = createCategory(token, "Transport");
-		createExpense(token, food, "600.00", "2026-08-05");
-		createExpense(token, transport, "400.00", "2026-08-10");
+		createExpense(token, food, "600.00", "2026-07-05");
+		createExpense(token, transport, "400.00", "2026-07-10");
 
 		mockMvc.perform(get("/api/v1/planning/expenses-by-category")
 						.header("Authorization", "Bearer " + token)
-						.param("month", "8")
+						.param("month", "7")
 						.param("year", "2026"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.length()").value(2))
@@ -116,20 +119,21 @@ class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 	void expenseEvolution_accumulatesMultipleExpensesOnSameDay() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long food = createCategory(token, "Food");
-		createExpense(token, food, "300.00", "2026-08-01");
-		createExpense(token, food, "550.00", "2026-08-01");
-		createExpense(token, food, "1130.00", "2026-08-05");
+		// Pix competence is the expense date's own month (July here).
+		createExpense(token, food, "300.00", "2026-07-01");
+		createExpense(token, food, "550.00", "2026-07-01");
+		createExpense(token, food, "1130.00", "2026-07-05");
 
 		mockMvc.perform(get("/api/v1/planning/expense-evolution")
 						.header("Authorization", "Bearer " + token)
-						.param("month", "8")
+						.param("month", "7")
 						.param("year", "2026"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.length()").value(2))
-				.andExpect(jsonPath("$[0].date").value("2026-08-01"))
+				.andExpect(jsonPath("$[0].date").value("2026-07-01"))
 				.andExpect(jsonPath("$[0].dailyAmount").value(850.00))
 				.andExpect(jsonPath("$[0].accumulatedAmount").value(850.00))
-				.andExpect(jsonPath("$[1].date").value("2026-08-05"))
+				.andExpect(jsonPath("$[1].date").value("2026-07-05"))
 				.andExpect(jsonPath("$[1].dailyAmount").value(1130.00))
 				.andExpect(jsonPath("$[1].accumulatedAmount").value(1980.00));
 	}
@@ -140,7 +144,7 @@ class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 
 		mockMvc.perform(get("/api/v1/planning/expense-evolution")
 						.header("Authorization", "Bearer " + token)
-						.param("month", "8")
+						.param("month", "7")
 						.param("year", "2026"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.length()").value(0));
@@ -150,12 +154,12 @@ class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 	void dashboard_combinesSummaryExpensesByCategoryAndEvolution() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long food = createCategory(token, "Food");
-		createMonthlyLimit(token, 8, 2026, "5000.00");
-		createExpense(token, food, "500.00", "2026-08-05");
+		createMonthlyLimit(token, 7, 2026, "5000.00");
+		createExpense(token, food, "500.00", "2026-07-05");
 
 		mockMvc.perform(get("/api/v1/planning/dashboard")
 						.header("Authorization", "Bearer " + token)
-						.param("month", "8")
+						.param("month", "7")
 						.param("year", "2026"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.summary.monthlyLimit").value(5000.00))
@@ -200,9 +204,19 @@ class PlanningIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"Expense","amount":%s,
-								"expenseDate":"%s","paymentMethod":"PIX","notes":null}"""
-								.formatted(categoryId, amount, date)))
+								"expenseDate":"%s","transactionMethodId":%d,"cardTransactionMode":null,"notes":null}"""
+								.formatted(categoryId, amount, date, pixMethod(token))))
 				.andExpect(status().isCreated());
+	}
+
+	private long pixMethod(String token) throws Exception {
+		Long existing = pixMethodByToken.get(token);
+		if (existing != null) {
+			return existing;
+		}
+		long id = createTransactionMethod(token, "Pix", "PIX");
+		pixMethodByToken.put(token, id);
+		return id;
 	}
 
 }

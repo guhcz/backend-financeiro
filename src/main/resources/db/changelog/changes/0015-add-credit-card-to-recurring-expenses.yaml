@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0015-add-credit-card-to-recurring-expenses
+      author: backend-financeiro
+      changes:
+        - addColumn:
+            tableName: recurring_expenses
+            columns:
+              - column:
+                  name: credit_card_id
+                  type: BIGINT
+
+  - changeSet:
+      id: 0015-add-credit-card-to-recurring-expenses-fk-credit-card
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: recurring_expenses
+            baseColumnNames: credit_card_id
+            referencedTableName: credit_cards
+            referencedColumnNames: id
+            constraintName: fk_recurring_expenses_credit_card
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0015-add-credit-card-to-recurring-expenses-index-credit-card
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: recurring_expenses
+            indexName: idx_recurring_expenses_credit_card
+            columns:
+              - column:
+                  name: credit_card_id

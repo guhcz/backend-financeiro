@@ -1,13 +1,13 @@
 package com.personal.backend_financeiro.enums;
 
-public enum PaymentMethod {
+public enum TransactionMethodType {
 
 	PIX,
 	CASH,
-	DEBIT_CARD,
-	CREDIT_CARD,
+	CARD,
 	BANK_TRANSFER,
 	BOLETO,
+	DEPOSIT,
 	OTHER
 
 }

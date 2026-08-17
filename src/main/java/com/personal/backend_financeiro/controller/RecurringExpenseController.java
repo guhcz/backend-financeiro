@@ -32,10 +32,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Tag(name = "Recurring Expenses", description = """
 		Regras de despesas recorrentes (aluguel, internet, assinaturas etc). Cada regra gera \
-		automaticamente uma despesa por mês, via job diário, respeitando o dia de vencimento \
-		(dueDay) informado — caso o mês não tenha esse dia, usa-se o último dia válido \
-		(ex.: dueDay 31 em fevereiro cai em 28 ou 29, conforme o ano). A geração é idempotente: \
-		nunca é criada mais de uma despesa para o mesmo mês/ano de uma mesma regra.""")
+		automaticamente uma despesa por mês, com antecedência de até \
+		app.recurring-expense.lookahead-months meses (padrão 12) — a criação já gera todas as \
+		ocorrências dentro desse horizonte, e um job diário mantém o horizonte rolando à medida \
+		que os meses passam. Editar ou encerrar a regra atualiza/remove as ocorrências futuras já \
+		geradas; as passadas nunca são tocadas. A geração respeita o dia de vencimento (dueDay) \
+		informado — caso o mês não tenha esse dia, usa-se o último dia válido (ex.: dueDay 31 em \
+		fevereiro cai em 28 ou 29, conforme o ano). É idempotente: nunca é criada mais de uma \
+		despesa para o mesmo mês/ano de uma mesma regra.""")
 public class RecurringExpenseController {
 
 	private final RecurringExpenseService recurringExpenseService;
@@ -44,10 +48,12 @@ public class RecurringExpenseController {
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	@Operation(summary = "Cria uma regra de despesa recorrente", description = """
-			Se startDate for igual ou anterior à data atual, a primeira despesa (do mês de \
-			startDate) é gerada imediatamente na resposta; se for futura, nenhuma despesa é \
-			gerada agora e o campo nextGenerationDate indica quando a primeira será criada. \
-			Não há geração retroativa de múltiplos meses.""")
+			Gera imediatamente, de forma síncrona, todas as ocorrências da regra desde a primeira \
+			(a partir de startDate) até o horizonte de antecedência configurado \
+			(app.recurring-expense.lookahead-months, padrão 12 meses) — por isso a despesa já \
+			aparece em Movimentações dos próximos meses assim que a regra é criada, sem esperar a \
+			data de vencimento chegar. O campo nextGenerationDate indica a partir de qual data o \
+			job diário retoma a geração para manter esse horizonte rolando.""")
 	@ApiResponses({
 			@ApiResponse(responseCode = "201", description = "Regra criada"),
 			@ApiResponse(responseCode = "400", description = "Dados inválidos (ex.: frequência diferente de MONTHLY, dueDay fora de 1-31, endDate anterior a startDate)"),
@@ -127,8 +133,10 @@ public class RecurringExpenseController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@Operation(summary = "Exclui ou encerra uma regra de despesa recorrente", description = """
 			Se a regra nunca gerou nenhuma despesa, é removida definitivamente. Se já gerou \
-			histórico, é encerrada de forma irreversível (não pode ser reativada via resume) \
-			e as despesas já geradas são preservadas.""")
+			histórico, é encerrada de forma irreversível (não pode ser reativada via resume): \
+			as despesas passadas/atuais são preservadas, mas as ocorrências futuras já \
+			pré-geradas (dentro do horizonte de antecedência) são removidas, já que não vão mais \
+			acontecer.""")
 	@ApiResponses({
 			@ApiResponse(responseCode = "204", description = "Regra excluída ou encerrada"),
 			@ApiResponse(responseCode = "401", description = "Não autenticado"),

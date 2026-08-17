@@ -1,6 +1,7 @@
 package com.personal.backend_financeiro.integration;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.TestPropertySource;
 
 import java.time.LocalDate;
 
@@ -12,21 +13,30 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Pins lookahead-months to 0 instead of the production default (12) so createRecurringExpense
+ * below keeps generating exactly one occurrence, matching every "the only generated expense"
+ * assumption in these tests.
+ */
+@TestPropertySource(properties = "app.recurring-expense.lookahead-months=0")
 class ExpenseIntegrationTest extends AbstractApiIntegrationTest {
+
+	private final java.util.Map<String, Long> pixMethodByToken = new java.util.HashMap<>();
 
 	@Test
 	void create_returns404_whenCategoryDoesNotBelongToUser() throws Exception {
 		String tokenAlice = registerAndLogin("Alice", "alice@example.com", "password123");
 		String tokenBob = registerAndLogin("Bob", "bob@example.com", "password123");
 		long categoryId = createCategory(tokenAlice, "Food");
+		long transactionMethodId = pixMethod(tokenBob);
 
 		mockMvc.perform(post("/api/v1/expenses")
 						.header("Authorization", "Bearer " + tokenBob)
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"Hack","amount":1.00,
-								"expenseDate":"2026-07-01","paymentMethod":"OTHER","notes":null}"""
-								.formatted(categoryId)))
+								"expenseDate":"2026-07-01","transactionMethodId":%d,"cardTransactionMode":null,"notes":null}"""
+								.formatted(categoryId, transactionMethodId)))
 				.andExpect(status().isNotFound());
 	}
 
@@ -120,8 +130,8 @@ class ExpenseIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"Internet Plus","amount":199.90,
-								"expenseDate":"2026-07-10","paymentMethod":"PIX","notes":null}"""
-								.formatted(categoryId)))
+								"expenseDate":"2026-07-10","transactionMethodId":%d,"cardTransactionMode":null,"notes":null}"""
+								.formatted(categoryId, pixMethod(token))))
 				.andExpect(status().isOk());
 
 		mockMvc.perform(get("/api/v1/recurring-expenses/" + ruleId)
@@ -129,7 +139,7 @@ class ExpenseIntegrationTest extends AbstractApiIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.description").value("Internet Plus"))
 				.andExpect(jsonPath("$.amount").value(199.90))
-				.andExpect(jsonPath("$.paymentMethod").value("PIX"));
+				.andExpect(jsonPath("$.transactionMethod.name").value("Pix"));
 	}
 
 	@Test
@@ -154,15 +164,25 @@ class ExpenseIntegrationTest extends AbstractApiIntegrationTest {
 				.andExpect(jsonPath("$.active").value(false));
 	}
 
+	private long pixMethod(String token) throws Exception {
+		Long existing = pixMethodByToken.get(token);
+		if (existing != null) {
+			return existing;
+		}
+		long id = createTransactionMethod(token, "Pix", "PIX");
+		pixMethodByToken.put(token, id);
+		return id;
+	}
+
 	private long createRecurringExpense(String token, long categoryId, String description, int dueDay, LocalDate startDate) throws Exception {
 		var result = mockMvc.perform(post("/api/v1/recurring-expenses")
 						.header("Authorization", "Bearer " + token)
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"%s","amount":119.90,
-								"paymentMethod":"CREDIT_CARD","notes":null,"frequency":"MONTHLY",
+								"transactionMethodId":%d,"cardTransactionMode":null,"notes":null,"frequency":"MONTHLY",
 								"dueDay":%d,"startDate":"%s","endDate":null}"""
-								.formatted(categoryId, description, dueDay, startDate)))
+								.formatted(categoryId, description, pixMethod(token), dueDay, startDate)))
 				.andExpect(status().isCreated())
 				.andReturn();
 		return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
@@ -194,8 +214,8 @@ class ExpenseIntegrationTest extends AbstractApiIntegrationTest {
 						.contentType(APPLICATION_JSON)
 						.content("""
 								{"categoryId":%d,"description":"%s","amount":10.00,
-								"expenseDate":"%s","paymentMethod":"PIX","notes":null}"""
-								.formatted(categoryId, description, date)))
+								"expenseDate":"%s","transactionMethodId":%d,"cardTransactionMode":null,"notes":null}"""
+								.formatted(categoryId, description, date, pixMethod(token))))
 				.andExpect(status().isCreated())
 				.andReturn();
 		return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();

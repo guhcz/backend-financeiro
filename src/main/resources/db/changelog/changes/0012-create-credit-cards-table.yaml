@@ -1,0 +1,110 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0012-create-credit-cards-table
+      author: backend-financeiro
+      changes:
+        - createTable:
+            tableName: credit_cards
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_credit_cards
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: closing_day
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: due_day
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: VARCHAR(180)
+              - column:
+                  name: updated_by
+                  type: VARCHAR(180)
+
+  - changeSet:
+      id: 0012-create-credit-cards-table-fk-user
+      author: backend-financeiro
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: credit_cards
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_credit_cards_user
+            onDelete: RESTRICT
+
+  - changeSet:
+      id: 0012-create-credit-cards-table-unique-user-name
+      author: backend-financeiro
+      changes:
+        - addUniqueConstraint:
+            tableName: credit_cards
+            columnNames: user_id, name
+            constraintName: uk_credit_cards_user_name
+
+  - changeSet:
+      id: 0012-create-credit-cards-table-check-closing-day
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE credit_cards ADD CONSTRAINT ck_credit_cards_closing_day_range CHECK (closing_day BETWEEN 1 AND 31);
+      rollback:
+        - sql:
+            sql: ALTER TABLE credit_cards DROP CONSTRAINT ck_credit_cards_closing_day_range;
+
+  - changeSet:
+      id: 0012-create-credit-cards-table-check-due-day
+      author: backend-financeiro
+      changes:
+        - sql:
+            sql: ALTER TABLE credit_cards ADD CONSTRAINT ck_credit_cards_due_day_range CHECK (due_day BETWEEN 1 AND 31);
+      rollback:
+        - sql:
+            sql: ALTER TABLE credit_cards DROP CONSTRAINT ck_credit_cards_due_day_range;
+
+  - changeSet:
+      id: 0012-create-credit-cards-table-index-user
+      author: backend-financeiro
+      changes:
+        - createIndex:
+            tableName: credit_cards
+            indexName: idx_credit_cards_user
+            columns:
+              - column:
+                  name: user_id

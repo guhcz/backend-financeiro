@@ -1,6 +1,6 @@
 package com.personal.backend_financeiro.dto.recurringexpense;
 
-import com.personal.backend_financeiro.enums.PaymentMethod;
+import com.personal.backend_financeiro.enums.CardTransactionMode;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -27,7 +27,10 @@ public record RecurringExpenseUpdateRequest(
 		BigDecimal amount,
 
 		@NotNull
-		PaymentMethod paymentMethod,
+		Long transactionMethodId,
+
+		@Schema(description = "Obrigatório quando a forma de pagamento é do tipo CARD; ignorado/deve ser nulo para as demais.")
+		CardTransactionMode cardTransactionMode,
 
 		@Size(max = 500)
 		String notes,

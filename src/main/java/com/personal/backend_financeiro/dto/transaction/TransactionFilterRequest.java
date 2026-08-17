@@ -13,7 +13,16 @@ public record TransactionFilterRequest(
 		LocalDate startDate,
 		LocalDate endDate,
 		String description,
-		Boolean recurring
+		Boolean recurring,
+
+		/**
+		 * Optional financial-competence filter, additive to startDate/endDate (does not replace
+		 * them, see TransactionRepository). When both month and year are present, expenses are
+		 * filtered by their billing month/year (invoice month for credit card, purchase month for
+		 * everything else) and incomes by their incomeDate's month/year.
+		 */
+		Integer month,
+		Integer year
 
 ) {
 }

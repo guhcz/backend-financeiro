@@ -55,4 +55,20 @@ abstract class AbstractApiIntegrationTest extends AbstractIntegrationTest {
 		return login(email, password);
 	}
 
+	protected long createTransactionMethod(String token, String name, String type) throws Exception {
+		return createTransactionMethod(token, name, type, null, null);
+	}
+
+	protected long createTransactionMethod(String token, String name, String type, Integer closingDay, Integer dueDay) throws Exception {
+		String card = closingDay == null ? "null" : "{\"closingDay\":%d,\"dueDay\":%d}".formatted(closingDay, dueDay);
+		MvcResult result = mockMvc.perform(post("/api/v1/transaction-methods")
+						.header("Authorization", "Bearer " + token)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"name":"%s","type":"%s","card":%s}""".formatted(name, type, card)))
+				.andExpect(status().isCreated())
+				.andReturn();
+		return objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asLong();
+	}
+
 }

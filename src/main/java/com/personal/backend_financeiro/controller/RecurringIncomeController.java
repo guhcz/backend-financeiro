@@ -32,12 +32,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Tag(name = "Recurring Incomes", description = """
 		Regras de receita recorrente (salário, aluguel recebido, renda variável mensal etc). \
-		Cada regra gera automaticamente uma receita por mês, via job diário, respeitando o dia \
-		de recebimento (receiptDay) informado — caso o mês não tenha esse dia, usa-se o último \
-		dia válido. receiptDay é opcional: quando ausente, a geração ainda ocorre todo mês (no \
-		dia 1, como data técnica de referência), mas nenhuma "data de recebimento prevista" é \
-		exibida. A geração é idempotente: nunca é criada mais de uma receita para o mesmo \
-		mês/ano de uma mesma regra.""")
+		Cada regra gera automaticamente uma receita por mês, com antecedência de até \
+		app.recurring-income.lookahead-months meses (padrão 12) — a criação já gera todas as \
+		ocorrências dentro desse horizonte, e um job diário mantém o horizonte rolando à medida \
+		que os meses passam. Editar ou encerrar a regra atualiza/remove as ocorrências futuras já \
+		geradas; as passadas nunca são tocadas. A geração respeita o dia de recebimento \
+		(receiptDay) informado — caso o mês não tenha esse dia, usa-se o último dia válido. \
+		receiptDay é opcional: quando ausente, a geração ainda ocorre todo mês (no dia 1, como \
+		data técnica de referência), mas nenhuma "data de recebimento prevista" é exibida. É \
+		idempotente: nunca é criada mais de uma receita para o mesmo mês/ano de uma mesma \
+		regra.""")
 public class RecurringIncomeController {
 
 	private final RecurringIncomeService recurringIncomeService;
@@ -46,10 +50,12 @@ public class RecurringIncomeController {
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	@Operation(summary = "Cria uma regra de receita recorrente", description = """
-			Se startDate for igual ou anterior à data atual, a primeira receita (do mês de \
-			startDate) é gerada imediatamente na resposta; se for futura, nenhuma receita é \
-			gerada agora e o campo nextGenerationDate indica quando a primeira será criada. \
-			Não há geração retroativa de múltiplos meses.""")
+			Gera imediatamente, de forma síncrona, todas as ocorrências da regra desde a primeira \
+			(a partir de startDate) até o horizonte de antecedência configurado \
+			(app.recurring-income.lookahead-months, padrão 12 meses) — por isso a receita já \
+			aparece em Movimentações dos próximos meses assim que a regra é criada, sem esperar a \
+			data de recebimento chegar. O campo nextGenerationDate indica a partir de qual data o \
+			job diário retoma a geração para manter esse horizonte rolando.""")
 	@ApiResponses({
 			@ApiResponse(responseCode = "201", description = "Regra criada"),
 			@ApiResponse(responseCode = "400", description = "Dados inválidos (ex.: frequência diferente de MONTHLY, receiptDay fora de 1-31, endDate anterior a startDate)"),
@@ -129,8 +135,10 @@ public class RecurringIncomeController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@Operation(summary = "Exclui ou encerra uma regra de receita recorrente", description = """
 			Se a regra nunca gerou nenhuma receita, é removida definitivamente. Se já gerou \
-			histórico, é encerrada de forma irreversível (não pode ser reativada via resume) \
-			e as receitas já geradas são preservadas.""")
+			histórico, é encerrada de forma irreversível (não pode ser reativada via resume): \
+			as receitas passadas/atuais são preservadas, mas as ocorrências futuras já \
+			pré-geradas (dentro do horizonte de antecedência) são removidas, já que não vão mais \
+			acontecer.""")
 	@ApiResponses({
 			@ApiResponse(responseCode = "204", description = "Regra excluída ou encerrada"),
 			@ApiResponse(responseCode = "401", description = "Não autenticado"),
