@@ -48,10 +48,17 @@ public class TransactionRepository {
 			       e.created_at AS created_at,
 			       c.id AS category_id, c.name AS category_name, c.color AS category_color,
 			       c.icon AS category_icon, c.active AS category_active,
-			       e.billing_month AS billing_month, e.billing_year AS billing_year
+			       e.billing_month AS billing_month, e.billing_year AS billing_year,
+			       CASE WHEN re.installment_count IS NULL THEN NULL ELSE CAST(
+			         ((e.recurrence_reference_year * 12 + e.recurrence_reference_month)
+			          - (EXTRACT(YEAR FROM re.start_date) * 12 + EXTRACT(MONTH FROM re.start_date)) + 1)
+			         AS INTEGER)
+			       END AS installment_number,
+			       re.installment_count AS installment_count
 			FROM expenses e
 			JOIN categories c ON c.id = e.category_id
 			JOIN transaction_methods tm ON tm.id = e.transaction_method_id
+			LEFT JOIN recurring_expenses re ON re.id = e.recurring_expense_id
 			WHERE e.user_id = :userId AND e.active = true AND :includeExpense
 			  AND (:categoryId IS NULL OR e.category_id = :categoryId)
 			  AND (:startDate IS NULL OR e.expense_date >= :startDate)
@@ -65,6 +72,7 @@ public class TransactionRepository {
 			       (i.recurring_income_id IS NOT NULL),
 			       i.generated_automatically, i.notes, i.created_at,
 			       c.id, c.name, c.color, c.icon, c.active,
+			       CAST(NULL AS INTEGER), CAST(NULL AS INTEGER),
 			       CAST(NULL AS INTEGER), CAST(NULL AS INTEGER)
 			FROM incomes i
 			JOIN categories c ON c.id = i.category_id
@@ -115,7 +123,9 @@ public class TransactionRepository {
 					rs.getString("notes"),
 					category,
 					(Integer) rs.getObject("billing_month"),
-					(Integer) rs.getObject("billing_year"));
+					(Integer) rs.getObject("billing_year"),
+					(Integer) rs.getObject("installment_number"),
+					(Integer) rs.getObject("installment_count"));
 		});
 
 		return new PageImpl<>(content, pageable, total);

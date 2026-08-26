@@ -53,13 +53,17 @@ class AuthServiceTest {
 				.thenReturn(authentication);
 		when(authentication.getPrincipal()).thenReturn(principal);
 		when(jwtService.generateToken(1L, "alice@example.com")).thenReturn("a.jwt.token");
+		when(jwtService.generateRefreshToken(1L, "alice@example.com")).thenReturn("a.refresh.token");
 		when(jwtProperties.expiration()).thenReturn(3600000L);
+		when(jwtProperties.refreshExpiration()).thenReturn(2592000000L);
 
 		LoginResponse response = authService.login(new LoginRequest("alice@example.com", "password123"));
 
 		assertThat(response.token()).isEqualTo("a.jwt.token");
 		assertThat(response.tokenType()).isEqualTo("Bearer");
 		assertThat(response.expiresIn()).isEqualTo(3600000L);
+		assertThat(response.refreshToken()).isEqualTo("a.refresh.token");
+		assertThat(response.refreshExpiresIn()).isEqualTo(2592000000L);
 	}
 
 }

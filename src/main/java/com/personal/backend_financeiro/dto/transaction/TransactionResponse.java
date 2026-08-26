@@ -31,7 +31,11 @@ public record TransactionResponse(
 		@Schema(description = "Mês/ano de competência (fatura, para cartão de crédito; mês da própria data para " +
 				"os demais meios). Nulo para receitas, que não têm conceito de fatura.")
 		Integer billingMonth,
-		Integer billingYear
+		Integer billingYear,
+		@Schema(description = "Número desta parcela; nulo quando não for uma compra parcelada.")
+		Integer installmentNumber,
+		@Schema(description = "Quantidade total de parcelas; nulo quando não for uma compra parcelada.")
+		Integer installmentCount
 
 ) {
 }

@@ -68,4 +68,6 @@ databaseChangeLog:
   - include:
       file: changes/0023-recompute-billing-competence-for-non-credit.yaml
       relativeToChangelogFile: true
-
+  - include:
+      file: changes/0024-add-installment-count-to-recurring-expenses.yaml
+      relativeToChangelogFile: true

@@ -52,7 +52,14 @@ public record RecurringExpenseCreateRequest(
 		@NotNull
 		LocalDate startDate,
 
-		LocalDate endDate
+		LocalDate endDate,
+
+		@Schema(description = "Data real do primeiro lançamento; o dia de vencimento vale a partir dos meses seguintes.")
+		LocalDate firstOccurrenceDate,
+
+		@Min(value = 1, message = "A quantidade de parcelas deve ser maior que zero.")
+		@Schema(description = "Quantidade total de parcelas; nulo para uma despesa recorrente comum.", example = "12")
+		Integer installmentCount
 
 ) {
 }

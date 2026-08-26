@@ -29,6 +29,7 @@ public interface RecurringExpenseMapper {
 	@Mapping(target = "status", ignore = true)
 	@Mapping(target = "startDate", ignore = true)
 	@Mapping(target = "frequency", ignore = true)
+	@Mapping(target = "installmentCount", ignore = true)
 	@Mapping(target = "nextGenerationDate", ignore = true)
 	@Mapping(target = "transactionMethod", ignore = true)
 	void updateEntityFromRequest(RecurringExpenseUpdateRequest request, @MappingTarget RecurringExpense recurringExpense);

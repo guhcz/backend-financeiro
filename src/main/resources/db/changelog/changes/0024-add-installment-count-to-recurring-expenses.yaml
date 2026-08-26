@@ -1,0 +1,26 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0024-add-installment-count-to-recurring-expenses
+      author: codex
+      changes:
+        - addColumn:
+            tableName: recurring_expenses
+            columns:
+              - column:
+                  name: installment_count
+                  type: INTEGER
+        - sql:
+            comment: Classifica regras mensais finitas existentes como compras parceladas.
+            sql: |
+              UPDATE recurring_expenses
+              SET installment_count = CAST(
+                ((EXTRACT(YEAR FROM end_date) * 12 + EXTRACT(MONTH FROM end_date))
+                 - (EXTRACT(YEAR FROM start_date) * 12 + EXTRACT(MONTH FROM start_date)) + 1)
+                AS INTEGER)
+              WHERE end_date IS NOT NULL;
+        - sql:
+            sql: ALTER TABLE recurring_expenses ADD CONSTRAINT ck_recurring_expenses_installment_count_positive CHECK (installment_count IS NULL OR installment_count > 0);
+      rollback:
+        - dropColumn:
+            tableName: recurring_expenses
+            columnName: installment_count

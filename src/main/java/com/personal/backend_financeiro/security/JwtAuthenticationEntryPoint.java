@@ -28,7 +28,15 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 	@Override
 	public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
 			throws IOException {
-		ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Authentication required");
+		String code = (String) request.getAttribute(JwtAuthenticationFilter.AUTH_ERROR_ATTRIBUTE);
+		if (code == null) {
+			code = "AUTHENTICATION_REQUIRED";
+		}
+		String detail = JwtAuthenticationFilter.TOKEN_EXPIRED.equals(code)
+				? "Access token expired"
+				: JwtAuthenticationFilter.INVALID_TOKEN.equals(code) ? "Invalid access token" : "Authentication required";
+		ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, detail);
+		problem.setProperty("code", code);
 		response.setStatus(HttpStatus.UNAUTHORIZED.value());
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		objectMapper.writeValue(response.getWriter(), problem);

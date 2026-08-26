@@ -78,6 +78,9 @@ public class RecurringExpense extends Auditable {
 	@Column(name = "end_date")
 	private LocalDate endDate;
 
+	@Column(name = "installment_count")
+	private Integer installmentCount;
+
 	@Column(name = "next_generation_date", nullable = false)
 	private LocalDate nextGenerationDate;
 

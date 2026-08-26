@@ -62,7 +62,7 @@ class RecurringExpenseServiceTest {
 	private static RecurringExpenseCreateRequest sampleCreateRequest(Long categoryId, RecurrenceFrequency frequency,
 			LocalDate startDate, LocalDate endDate, Integer dueDay) {
 		return new RecurringExpenseCreateRequest(categoryId, "Internet", new BigDecimal("119.90"),
-				2L, null, "Plano residencial", frequency, dueDay, startDate, endDate);
+				2L, null, "Plano residencial", frequency, dueDay, startDate, endDate, null, null);
 	}
 
 	private static RecurringExpenseUpdateRequest sampleUpdateRequest(Long categoryId, Integer dueDay, LocalDate endDate) {
@@ -332,7 +332,7 @@ class RecurringExpenseServiceTest {
 		when(categoryRepository.findByIdAndUserId(9L, 1L)).thenReturn(Optional.of(new Category()));
 		when(transactionMethodRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.of(NUBANK));
 		RecurringExpenseCreateRequest request = new RecurringExpenseCreateRequest(9L, "Internet", new BigDecimal("119.90"),
-				5L, null, null, RecurrenceFrequency.MONTHLY, 10, LocalDate.of(2026, 8, 1), null);
+				5L, null, null, RecurrenceFrequency.MONTHLY, 10, LocalDate.of(2026, 8, 1), null, null, null);
 
 		assertThatThrownBy(() -> recurringExpenseService.create(1L, request))
 				.isInstanceOf(InvalidRequestException.class);
@@ -345,7 +345,7 @@ class RecurringExpenseServiceTest {
 		when(categoryRepository.findByIdAndUserId(9L, 1L)).thenReturn(Optional.of(new Category()));
 		when(transactionMethodRepository.findByIdAndUserId(5L, 1L)).thenReturn(Optional.empty());
 		RecurringExpenseCreateRequest request = new RecurringExpenseCreateRequest(9L, "Internet", new BigDecimal("119.90"),
-				5L, CardTransactionMode.CREDIT, null, RecurrenceFrequency.MONTHLY, 10, LocalDate.of(2026, 8, 1), null);
+				5L, CardTransactionMode.CREDIT, null, RecurrenceFrequency.MONTHLY, 10, LocalDate.of(2026, 8, 1), null, null, null);
 
 		assertThatThrownBy(() -> recurringExpenseService.create(1L, request))
 				.isInstanceOf(ResourceNotFoundException.class);

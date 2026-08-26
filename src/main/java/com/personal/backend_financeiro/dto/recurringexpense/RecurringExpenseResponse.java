@@ -23,6 +23,7 @@ public record RecurringExpenseResponse(
 		Integer dueDay,
 		LocalDate startDate,
 		LocalDate endDate,
+		Integer installmentCount,
 		@Schema(description = "Data em que a próxima despesa será gerada automaticamente.")
 		LocalDate nextGenerationDate,
 		@Schema(description = "true se a regra está ativa (gerando despesas mensalmente); false se pausada ou encerrada.")
