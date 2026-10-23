@@ -60,13 +60,33 @@ public class RecurringExpenseService {
 		if (request.endDate() != null && request.endDate().isBefore(request.startDate())) {
 			throw new InvalidRequestException("A data final não pode ser anterior à data inicial.");
 		}
+		if (request.firstOccurrenceDate() != null) {
+			if (!YearMonth.from(request.firstOccurrenceDate()).equals(YearMonth.from(request.startDate()))) {
+				throw new InvalidRequestException("A primeira ocorrência deve pertencer ao mês inicial.");
+			}
+			if (request.endDate() != null && request.firstOccurrenceDate().isAfter(request.endDate())) {
+				throw new InvalidRequestException("A primeira ocorrência não pode ser posterior à data final.");
+			}
+		}
+		if (request.installmentCount() != null) {
+			if (request.endDate() == null) {
+				throw new InvalidRequestException("A data final é obrigatória para uma compra parcelada.");
+			}
+			long expectedCount = java.time.temporal.ChronoUnit.MONTHS.between(
+					YearMonth.from(request.startDate()), YearMonth.from(request.endDate())) + 1;
+			if (expectedCount != request.installmentCount()) {
+				throw new InvalidRequestException("A quantidade de parcelas não corresponde ao período informado.");
+			}
+		}
 
 		RecurringExpense rule = recurringExpenseMapper.toEntity(request);
 		rule.setUser(userRepository.getReferenceById(userId));
 		rule.setCategory(category);
 		rule.setTransactionMethod(transactionMethod);
 		rule.setStatus(RecurrenceStatus.ACTIVE);
-		rule.setNextGenerationDate(RecurrenceDateCalculator.resolveOccurrenceDate(request.startDate(), request.dueDay()));
+		rule.setNextGenerationDate(request.firstOccurrenceDate() != null
+				? request.firstOccurrenceDate()
+				: RecurrenceDateCalculator.resolveOccurrenceDate(request.startDate(), request.dueDay()));
 
 		RecurringExpense saved = recurringExpenseRepository.save(rule);
 		generationService.generateInitialOccurrenceIfDue(saved, LocalDate.now());

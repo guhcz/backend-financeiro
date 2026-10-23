@@ -2,6 +2,7 @@ package com.personal.backend_financeiro.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +18,9 @@ import java.io.IOException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+	public static final String AUTH_ERROR_ATTRIBUTE = JwtAuthenticationFilter.class.getName() + ".AUTH_ERROR";
+	public static final String TOKEN_EXPIRED = "TOKEN_EXPIRED";
+	public static final String INVALID_TOKEN = "INVALID_TOKEN";
 
 	private static final String BEARER_PREFIX = "Bearer ";
 
@@ -42,7 +46,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 				Authentication authentication =
 						new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
 				SecurityContextHolder.getContext().setAuthentication(authentication);
+			} catch (ExpiredJwtException e) {
+				request.setAttribute(AUTH_ERROR_ATTRIBUTE, TOKEN_EXPIRED);
+				SecurityContextHolder.clearContext();
 			} catch (JwtException | IllegalArgumentException e) {
+				request.setAttribute(AUTH_ERROR_ATTRIBUTE, INVALID_TOKEN);
 				SecurityContextHolder.clearContext();
 			}
 		}

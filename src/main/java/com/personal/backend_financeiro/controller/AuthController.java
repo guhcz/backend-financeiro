@@ -2,6 +2,7 @@ package com.personal.backend_financeiro.controller;
 
 import com.personal.backend_financeiro.dto.auth.LoginRequest;
 import com.personal.backend_financeiro.dto.auth.LoginResponse;
+import com.personal.backend_financeiro.dto.auth.RefreshTokenRequest;
 import com.personal.backend_financeiro.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -26,6 +27,13 @@ public class AuthController {
 	@SecurityRequirements
 	public LoginResponse login(@Valid @RequestBody LoginRequest request) {
 		return authService.login(request);
+	}
+
+	@PostMapping("/refresh")
+	@Operation(summary = "Renew access and refresh tokens")
+	@SecurityRequirements
+	public LoginResponse refresh(@Valid @RequestBody RefreshTokenRequest request) {
+		return authService.refresh(request);
 	}
 
 }

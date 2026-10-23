@@ -196,6 +196,45 @@ class TransactionIntegrationTest extends AbstractApiIntegrationTest {
 	}
 
 	@Test
+	void filter_installmentExpense_returnsCurrentAndTotalInstallments() throws Exception {
+		String token = registerAndLogin("Alice", "alice@example.com", "password123");
+		long categoryId = createCategory(token, "Compras");
+
+		mockMvc.perform(post("/api/v1/recurring-expenses")
+						.header("Authorization", "Bearer " + token)
+						.contentType(APPLICATION_JSON)
+						.content("""
+								{"categoryId":%d,"description":"Notebook","amount":1000.00,
+								"transactionMethodId":%d,"cardTransactionMode":null,"notes":null,
+								"frequency":"MONTHLY","dueDay":5,"startDate":"2026-08-01",
+								"endDate":"2026-10-31","firstOccurrenceDate":"2026-08-26","installmentCount":3}"""
+								.formatted(categoryId, pixMethod(token))))
+				.andExpect(status().isCreated());
+
+		mockMvc.perform(get("/api/v1/transactions")
+						.header("Authorization", "Bearer " + token)
+						.param("type", "EXPENSE")
+						.param("month", "8")
+						.param("year", "2026"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.totalElements").value(1))
+				.andExpect(jsonPath("$.content[0].date").value("2026-08-26"))
+				.andExpect(jsonPath("$.content[0].installmentNumber").value(1))
+				.andExpect(jsonPath("$.content[0].installmentCount").value(3));
+
+		mockMvc.perform(get("/api/v1/transactions")
+						.header("Authorization", "Bearer " + token)
+						.param("type", "EXPENSE")
+						.param("month", "9")
+						.param("year", "2026"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.totalElements").value(1))
+				.andExpect(jsonPath("$.content[0].date").value("2026-09-05"))
+				.andExpect(jsonPath("$.content[0].installmentNumber").value(2))
+				.andExpect(jsonPath("$.content[0].installmentCount").value(3));
+	}
+
+	@Test
 	void filter_expenseAndIncomeWithSameNumericId_haveDistinctTransactionKeys() throws Exception {
 		String token = registerAndLogin("Alice", "alice@example.com", "password123");
 		long categoryId = createCategory(token, "Trabalho");
